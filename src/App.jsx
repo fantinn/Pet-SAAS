@@ -1,0 +1,295 @@
+import { useState } from "react";
+import { useApp } from "./context/AppProvider";
+import { FORMAS_PAGAMENTO, STATUS_COR } from "./data/constants";
+import { formatDate } from "./utils/format";
+
+// Layout components
+import Sidebar from "./components/layout/Sidebar";
+
+// Feature components
+import Dashboard from "./components/features/Dashboard";
+import Clientes from "./components/features/clientes/Clientes";
+import Pets from "./components/features/pets/Pets";
+import Agendamentos from "./components/features/agendamentos/Agendamentos";
+import Vendas from "./components/features/vendas/Vendas";
+import Planos from "./components/features/planos/Planos";
+import Financeiro from "./components/features/financeiro/Financeiro";
+import Settings from "./components/features/settings/Settings";
+
+// Custom hooks
+import { useCalendar } from "./hooks/useCalendar";
+
+export default function PetshopSaaS() {
+  const { state, derived, actions } = useApp();
+  
+  // Estado local de UI (não persiste)
+  const [tab, setTab] = useState("dashboard");
+  const [buscaCliente, setBuscaCliente] = useState("");
+  const [buscaPet, setBuscaPet] = useState("");
+  const [petDetalheId, setPetDetalheId] = useState(null);
+
+  // Formulários locais
+  const [novoCliente, setNovoCliente] = useState({ nome: "", telefone: "" });
+  const [novoPet, setNovoPet] = useState({ nome: "", especie: "Cachorro", raca: "", clienteId: "" });
+  
+  const [novoAg, setNovoAg] = useState({
+    petId: "",
+    servico: "",
+    data: "",
+    hora: "",
+    status: "Agendado",
+    valor: 0,
+  });
+
+  const [novaVenda, setNovaVenda] = useState({
+    clienteId: "",
+    itemTipo: "",
+    itemCustom: "",
+    qtd: 1,
+    valor: 0,
+    formaPagamento: "Pix",
+  });
+
+  const { mesAtual, diaSelecionado, setDiaSelecionado, diasDoMes, prevMes, nextMes } = useCalendar();
+  const [clienteParaAssinar, setClienteParaAssinar] = useState("");
+  const [novaDespesa, setNovaDespesa] = useState({ descricao: "", valor: "", data: formatDate(new Date()) });
+
+  // Handlers
+  function addCliente() {
+    if (!novoCliente.nome) return;
+    actions.addCliente(novoCliente);
+    setNovoCliente({ nome: "", telefone: "" });
+  }
+
+  function updateCliente(id, novosDados) {
+    actions.updateCliente(id, novosDados);
+  }
+
+  function addPet() {
+    if (!novoPet.nome || !novoPet.clienteId) return;
+    actions.addPet(novoPet);
+    setNovoPet({ nome: "", especie: "Cachorro", raca: "", clienteId: "" });
+  }
+
+  function updatePet(id, novosDados) {
+    actions.updatePet(id, novosDados);
+  }
+
+  function atualizarObs(id, texto) {
+    actions.updatePetObservacoes(id, texto);
+  }
+
+  function delCliente(id) {
+    actions.deleteCliente(id);
+  }
+
+  function delPet(id) {
+    actions.deletePet(id);
+  }
+
+  function addAg() {
+    if (!novoAg.petId || !novoAg.data || !novoAg.hora) return;
+    actions.addAgendamento(novoAg);
+    setNovoAg({ petId: "", servico: "", data: "", hora: "", status: "Agendado", valor: 0 });
+  }
+
+  function delAg(id) {
+    actions.deleteAgendamento(id);
+  }
+
+  function cicloStatus(id) {
+    actions.cicloStatusAgendamento(id);
+  }
+
+  function addVenda() {
+    const item = novaVenda.itemTipo === "custom" ? novaVenda.itemCustom : novaVenda.itemTipo;
+    if (!item || !novaVenda.valor) return;
+    actions.addVenda({
+      clienteId: novaVenda.clienteId,
+      item,
+      qtd: Number(novaVenda.qtd) || 1,
+      valor: Number(novaVenda.valor),
+      formaPagamento: novaVenda.formaPagamento,
+    });
+    setNovaVenda({
+      clienteId: "",
+      itemTipo: "",
+      itemCustom: "",
+      qtd: 1,
+      valor: 0,
+      formaPagamento: "Pix",
+    });
+  }
+
+  function delVenda(id) {
+    actions.deleteVenda(id);
+  }
+
+  function assinarPlano(planoId) {
+    if (!clienteParaAssinar) return;
+    actions.addAssinatura({
+      clienteId: Number(clienteParaAssinar),
+      planoId,
+      dataInicio: formatDate(new Date()),
+    });
+  }
+
+  function cancelarAssinatura(id) {
+    actions.cancelAssinatura(id);
+  }
+
+  function addDespesa() {
+    if (!novaDespesa.descricao || !novaDespesa.valor) return;
+    actions.addDespesa({
+      descricao: novaDespesa.descricao,
+      valor: Number(novaDespesa.valor),
+      data: novaDespesa.data,
+    });
+    setNovaDespesa({ descricao: "", valor: "", data: formatDate(new Date()) });
+  }
+
+  function delDespesa(id) {
+    actions.deleteDespesa(id);
+  }
+
+  function handleAgendamentoClick(agendamento, cliente) {
+    if (cliente) {
+      setTab("clientes");
+      setBuscaCliente(cliente.nome);
+    }
+  }
+
+  // Derived values for components
+  const contaNoDia = (dataStr) => state.agendamentos.filter((a) => a.data === dataStr).length;
+
+  return (
+    <div className="min-h-screen bg-gray-50 text-gray-900 flex">
+      <Sidebar tab={tab} setTab={setTab} />
+
+      <main className="flex-1 bg-white border-l p-6 overflow-auto">
+        {tab === "dashboard" && (
+          <Dashboard 
+            clientes={state.clientes}
+            pets={state.pets}
+            agendamentos={state.agendamentos}
+            totalEntradas={derived.totalEntradas}
+            statusCor={STATUS_COR}
+            petInfo={derived.petInfo}
+            onAgendamentoClick={handleAgendamentoClick}
+          />
+        )}
+
+        {tab === "settings" && (
+          <Settings
+            servicos={state.servicos}
+            planos={state.planos}
+            configuracoes={state.configuracoes}
+            onAddServico={actions.addServico}
+            onUpdateServico={actions.updateServico}
+            onDeleteServico={actions.deleteServico}
+            onAddPlano={actions.addPlano}
+            onUpdatePlano={actions.updatePlano}
+            onDeletePlano={actions.deletePlano}
+            onUpdateConfiguracoes={actions.updateConfiguracoes}
+          />
+        )}
+
+        {tab === "clientes" && (
+          <Clientes
+            clientes={state.clientes}
+            pets={state.pets}
+            buscaCliente={buscaCliente}
+            setBuscaCliente={setBuscaCliente}
+            novoCliente={novoCliente}
+            setNovoCliente={setNovoCliente}
+            addCliente={addCliente}
+            delCliente={delCliente}
+            updateCliente={updateCliente}
+          />
+        )}
+
+        {tab === "pets" && (
+          <Pets
+            pets={state.pets}
+            clientes={state.clientes}
+            buscaPet={buscaPet}
+            setBuscaPet={setBuscaPet}
+            novoPet={novoPet}
+            setNovoPet={setNovoPet}
+            addPet={addPet}
+            delPet={delPet}
+            petDetalheId={petDetalheId}
+            setPetDetalheId={setPetDetalheId}
+            atualizarObs={atualizarObs}
+            updatePet={updatePet}
+          />
+        )}
+
+        {tab === "agendamentos" && (
+          <Agendamentos
+            pets={state.pets}
+            agendamentos={state.agendamentos}
+            servicosPadrao={state.servicos}
+            novoAg={novoAg}
+            setNovoAg={setNovoAg}
+            addAg={addAg}
+            delAg={delAg}
+            cicloStatus={cicloStatus}
+            mesAtual={mesAtual}
+            prevMes={prevMes}
+            nextMes={nextMes}
+            diaSelecionado={diaSelecionado}
+            setDiaSelecionado={setDiaSelecionado}
+            petInfo={derived.petInfo}
+            contaNoDia={contaNoDia}
+            statusCor={STATUS_COR}
+            diasDoMes={diasDoMes}
+          />
+        )}
+
+        {tab === "vendas" && (
+          <Vendas
+            clientes={state.clientes}
+            vendas={state.vendas}
+            servicosPadrao={state.servicos}
+            formasPagamento={FORMAS_PAGAMENTO}
+            novaVenda={novaVenda}
+            setNovaVenda={setNovaVenda}
+            addVenda={addVenda}
+            delVenda={delVenda}
+            totalVendas={derived.totalVendas}
+            nomeCliente={derived.nomeCliente}
+          />
+        )}
+
+        {tab === "planos" && (
+          <Planos
+            clientes={state.clientes}
+            assinaturas={state.assinaturas}
+            planos={state.planos}
+            clienteParaAssinar={clienteParaAssinar}
+            setClienteParaAssinar={setClienteParaAssinar}
+            assinarPlano={assinarPlano}
+            cancelarAssinatura={cancelarAssinatura}
+            nomeCliente={derived.nomeCliente}
+          />
+        )}
+
+        {tab === "financeiro" && (
+          <Financeiro
+            despesas={state.despesas}
+            novaDespesa={novaDespesa}
+            setNovaDespesa={setNovaDespesa}
+            addDespesa={addDespesa}
+            delDespesa={delDespesa}
+            totalEntradas={derived.totalEntradas}
+            totalDespesas={derived.totalDespesas}
+            totalVendas={derived.totalVendas}
+            totalPlanos={derived.totalPlanos}
+            saldo={derived.saldo}
+          />
+        )}
+      </main>
+    </div>
+  );
+}
