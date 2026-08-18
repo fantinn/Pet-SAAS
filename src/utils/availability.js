@@ -1,85 +1,74 @@
-// Configuração de horário de funcionamento (pode ser dinâmico no futuro)
-const HORARIO_ABERTURA = 8; // 8:00
-const HORARIO_FECHAMENTO = 18; // 18:00
-const INTERVALO_MINUTOS = 30; // Intervalo de 30 minutos
+const INTERVALO_PADRAO = 30; // grade de horários, em minutos
 
 /**
- * Calcula horários disponíveis para agendamento
- * @param {string} data - Data no formato YYYY-MM-DD
- * @param {Array} agendamentos - Lista de agendamentos existentes
- * @param {number} duracaoServico - Duração do serviço em minutos
- * @param {Array} servicos - Lista de serviços para buscar duração
- * @returns {Array} - Lista de horários disponíveis no formato HH:MM
+ * Calcula os horários livres para encaixar um serviço em uma data.
+ *
+ * @param {Object}   params
+ * @param {string}   params.data          - Data no formato YYYY-MM-DD
+ * @param {Array}    params.agendamentos  - Agendamentos existentes
+ * @param {Array}    params.servicos      - Serviços cadastrados (para achar a duração de cada agendamento)
+ * @param {number}   params.duracao       - Duração do serviço que se quer agendar, em minutos
+ * @param {Object}   params.configuracoes - { horarioAbertura, horarioFechamento, intervaloMinutos }
+ * @param {Date}     [params.agora]       - "Momento atual" (injetável para testes)
+ * @returns {string[]} Horários livres no formato HH:MM
  */
-export function calcularHorariosDisponiveis(data, agendamentos, duracaoServico, servicos) {
-  // Filtra agendamentos do dia
-  const agendamentosDoDia = agendamentos.filter(a => a.data === data && a.status !== "Cancelado");
-  
-  // Gera todos os horários possíveis do dia
-  const horariosPossiveis = [];
-  for (let hora = HORARIO_ABERTURA; hora < HORARIO_FECHAMENTO; hora++) {
-    for (let min = 0; min < 60; min += INTERVALO_MINUTOS) {
-      const horario = `${String(hora).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
-      horariosPossiveis.push(horario);
-    }
+export function calcularHorariosDisponiveis({
+  data,
+  agendamentos = [],
+  servicos = [],
+  duracao = 60,
+  configuracoes = {},
+  agora = new Date(),
+}) {
+  if (!data) return [];
+
+  const abertura = Number(configuracoes.horarioAbertura ?? 8);
+  const fechamento = Number(configuracoes.horarioFechamento ?? 18);
+  const intervalo = Number(configuracoes.intervaloMinutos ?? INTERVALO_PADRAO);
+  if (!(fechamento > abertura) || intervalo <= 0) return [];
+
+  const aberturaMin = abertura * 60;
+  const fechamentoMin = fechamento * 60;
+
+  // Cancelados liberam a agenda novamente.
+  const agendamentosDoDia = agendamentos.filter((a) => a.data === data && a.status !== "Cancelado");
+
+  // Em uma data passada nada está disponível; hoje, só o que ainda não passou.
+  const hojeStr = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, "0")}-${String(
+    agora.getDate()
+  ).padStart(2, "0")}`;
+  if (data < hojeStr) return [];
+  const minimoMin = data === hojeStr ? agora.getHours() * 60 + agora.getMinutes() : -Infinity;
+
+  const horarios = [];
+  for (let inicio = aberturaMin; inicio + duracao <= fechamentoMin; inicio += intervalo) {
+    if (inicio < minimoMin) continue;
+    if (temConflito(inicio, duracao, agendamentosDoDia, servicos)) continue;
+    horarios.push(minutosParaHorario(inicio));
   }
-  
-  // Filtra horários disponíveis
-  const horariosDisponiveis = horariosPossiveis.filter(horario => {
-    return !temConflito(horario, duracaoServico, agendamentosDoDia, servicos);
-  });
-  
-  return horariosDisponiveis;
+  return horarios;
 }
 
-/**
- * Verifica se um horário tem conflito com agendamentos existentes
- * @param {string} horario - Horário no formato HH:MM
- * @param {number} duracao - Duração em minutos
- * @param {Array} agendamentosDoDia - Agendamentos do dia
- * @param {Array} servicos - Lista de serviços para buscar duração
- * @returns {boolean}
- */
-function temConflito(horario, duracao, agendamentosDoDia, servicos) {
-  const [hora, min] = horario.split(':').map(Number);
-  const inicioMinutos = hora * 60 + min;
+/** Verifica sobreposição do intervalo [inicio, inicio+duracao) com a agenda do dia. */
+function temConflito(inicioMinutos, duracao, agendamentosDoDia, servicos) {
   const fimMinutos = inicioMinutos + duracao;
-  
-  for (const ag of agendamentosDoDia) {
-    const [agHora, agMin] = ag.hora.split(':').map(Number);
-    const agInicioMinutos = agHora * 60 + agMin;
-    
-    // Encontra a duração do serviço agendado
-    const agServico = servicos.find(s => s.nome === ag.servico);
-    const agDuracao = agServico ? agServico.duracao : 60;
-    const agFimMinutos = agInicioMinutos + agDuracao;
-    
-    // Verifica sobreposição
-    if (inicioMinutos < agFimMinutos && fimMinutos > agInicioMinutos) {
-      return true;
-    }
-  }
-  
-  return false;
+
+  return agendamentosDoDia.some((ag) => {
+    const agInicio = horarioParaMinutos(ag.hora);
+    if (!Number.isFinite(agInicio)) return false;
+    const agDuracao = servicos.find((s) => s.nome === ag.servico)?.duracao ?? 60;
+    return inicioMinutos < agInicio + agDuracao && fimMinutos > agInicio;
+  });
 }
 
-/**
- * Converte horário HH:MM para minutos desde meia-noite
- * @param {string} horario - Horário no formato HH:MM
- * @returns {number}
- */
+/** "14:30" -> 870 */
 export function horarioParaMinutos(horario) {
-  const [hora, min] = horario.split(':').map(Number);
+  const [hora, min] = String(horario || "").split(":").map(Number);
+  if (!Number.isFinite(hora) || !Number.isFinite(min)) return NaN;
   return hora * 60 + min;
 }
 
-/**
- * Converte minutos desde meia-noite para horário HH:MM
- * @param {number} minutos - Minutos desde meia-noite
- * @returns {string}
- */
+/** 870 -> "14:30" */
 export function minutosParaHorario(minutos) {
-  const hora = Math.floor(minutos / 60);
-  const min = minutos % 60;
-  return `${String(hora).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+  return `${String(Math.floor(minutos / 60)).padStart(2, "0")}:${String(minutos % 60).padStart(2, "0")}`;
 }

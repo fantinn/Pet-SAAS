@@ -1,15 +1,17 @@
 import { createContext, useContext, useEffect, useMemo, useReducer } from "react";
-import { appReducer, actionTypes } from "./appReducer.jsx";
-import { ESTADO_INICIAL, FORMAS_PAGAMENTO } from "../data/constants.jsx";
-import { formatDate } from "../utils/format.jsx";
-import * as storage from "../services/storageService.jsx";
+import { appReducer, actionTypes } from "./appReducer.js";
+import { ESTADO_INICIAL, FORMAS_PAGAMENTO } from "../data/constants.js";
+import { migrarEstado } from "../data/migrarEstado.js";
+import { formatDate } from "../utils/format.js";
+import { mesmoId } from "../utils/id.js";
+import * as storage from "../services/storageService.js";
 
 const STORAGE_KEY = "estado";
 
 const AppStateContext = createContext(null);
 
 function init() {
-  return storage.load(STORAGE_KEY, ESTADO_INICIAL);
+  return migrarEstado(storage.load(STORAGE_KEY, null), ESTADO_INICIAL);
 }
 
 export function AppProvider({ children }) {
@@ -27,12 +29,16 @@ export function AppProvider({ children }) {
     const hoje = new Date();
     const hojeStr = formatDate(hoje);
 
-    const nomeCliente = (id) => state.clientes.find((c) => c.id === id)?.nome || "—";
-    const petInfo = (id) => state.pets.find((p) => p.id === id);
+    const clienteInfo = (id) => state.clientes.find((c) => mesmoId(c.id, id));
+    const nomeCliente = (id) => clienteInfo(id)?.nome || "—";
+    const petInfo = (id) => state.pets.find((p) => mesmoId(p.id, id));
+    // Dono do pet: antes o Agendamentos passava um clienteId para petInfo e
+    // acabava mostrando o nome errado.
+    const donoDoPet = (petId) => clienteInfo(petInfo(petId)?.clienteId);
 
     const totalVendas = state.vendas.reduce((s, v) => s + v.qtd * v.valor, 0);
     const totalPlanos = state.assinaturas.reduce(
-      (s, a) => s + (state.planos.find((p) => p.id === a.planoId)?.preco || 0),
+      (s, a) => s + (state.planos.find((p) => mesmoId(p.id, a.planoId))?.preco || 0),
       0
     );
     const totalEntradas = totalVendas + totalPlanos;
@@ -52,8 +58,10 @@ export function AppProvider({ children }) {
     return {
       hoje,
       hojeStr,
+      clienteInfo,
       nomeCliente,
       petInfo,
+      donoDoPet,
       totalVendas,
       totalPlanos,
       totalEntradas,
