@@ -1,117 +1,109 @@
 import StatusBadge from "../common/StatusBadge";
-import { Dog, Clock, DollarSign } from "lucide-react";
+import EmptyState from "../common/EmptyState";
+import { Dog, Clock, Users, CalendarDays, ChevronRight, CreditCard } from "lucide-react";
+import { formatCurrency } from "../../utils/format";
 
-export default function Dashboard({ clientes, pets, agendamentos, totalEntradas, statusCor, petInfo, onAgendamentoClick }) {
-  const hoje = new Date();
-  const formatDate = (d) =>
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-
-  const agendamentosHoje = agendamentos.filter((a) => a.data === formatDate(hoje));
-
-  const getClienteFromPet = (petId) => {
-    const pet = petInfo(petId);
-    if (!pet) return null;
-    return clientes.find((c) => c.id === pet.clienteId);
-  };
-
-  const handleAgendamentoClick = (agendamento) => {
-    if (onAgendamentoClick) {
-      const cliente = getClienteFromPet(agendamento.petId);
-      onAgendamentoClick(agendamento, cliente);
-    }
-  };
-
+function Metrica({ icon: Icon, titulo, valor }) {
   return (
-    <div>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        <div className="border rounded-lg p-3 text-center">
-          <p className="text-xs text-gray-400">Clientes</p>
-          <p className="font-semibold text-lg">{clientes.length}</p>
-        </div>
-        <div className="border rounded-lg p-3 text-center">
-          <p className="text-xs text-gray-400">Pets</p>
-          <p className="font-semibold text-lg">{pets.length}</p>
-        </div>
-        <div className="border rounded-lg p-3 text-center">
-          <p className="text-xs text-gray-400">Hoje</p>
-          <p className="font-semibold text-lg">{agendamentosHoje.length}</p>
-        </div>
-        <div className="border rounded-lg p-3 text-center">
-          <p className="text-xs text-gray-400">Faturamento</p>
-          <p className="font-semibold text-lg">R$ {totalEntradas.toFixed(2)}</p>
-        </div>
+    <div className="border rounded-xl p-4">
+      <div className="flex items-center gap-2 text-xs text-gray-400">
+        <Icon size={14} />
+        {titulo}
+      </div>
+      <p className="font-semibold text-xl mt-1">{valor}</p>
+    </div>
+  );
+}
+
+export default function Dashboard({
+  clientes,
+  pets,
+  agendamentosHoje,
+  totalEntradas,
+  totalPorPagamento,
+  statusCor,
+  petInfo,
+  donoDoPet,
+  onAgendamentoClick,
+}) {
+  return (
+    <div className="space-y-6">
+      <h2 className="text-xl font-semibold">Dashboard</h2>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <Metrica icon={Users} titulo="Clientes" valor={clientes.length} />
+        <Metrica icon={Dog} titulo="Pets" valor={pets.length} />
+        <Metrica icon={CalendarDays} titulo="Hoje" valor={agendamentosHoje.length} />
+        <Metrica icon={CreditCard} titulo="Faturamento" valor={formatCurrency(totalEntradas)} />
       </div>
 
-      <p className="text-xs text-gray-400 mb-3">Agendamentos de hoje</p>
-      
-      {agendamentosHoje.length === 0 ? (
-        <div className="text-center py-8 bg-gray-50 rounded-lg">
-          <Dog className="mx-auto mb-2 text-gray-300" size={32} />
-          <p className="text-sm text-gray-400">Nenhum agendamento para hoje.</p>
-        </div>
-      ) : (
-        <div className="grid gap-3">
-          {agendamentosHoje.map((a) => {
-            const pet = petInfo(a.petId);
-            const cliente = getClienteFromPet(a.petId);
-            
-            return (
-              <button
-                key={a.id}
-                onClick={() => handleAgendamentoClick(a)}
-                className="w-full text-left p-4 bg-white border rounded-lg hover:shadow-md hover:border-blue-300 transition-all duration-200 group"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-lg font-bold text-blue-600">{a.hora}</span>
-                      <StatusBadge status={a.status} colors={statusCor} />
-                    </div>
-                    
-                    <div className="flex items-center gap-2 mb-1">
-                      <Dog size={16} className="text-gray-400" />
-                      <span className="font-medium text-gray-800">{pet?.nome || "Pet não encontrado"}</span>
-                      {cliente && (
-                        <span className="text-gray-400">·</span>
-                      )}
-                      {cliente && (
-                        <span className="text-sm text-gray-600">{cliente.nome}</span>
-                      )}
-                    </div>
-                    
-                    <div className="flex items-center gap-4 text-sm text-gray-500">
-                      <div className="flex items-center gap-1">
-                        <Clock size={14} />
-                        <span>{a.servico}</span>
+      <div>
+        <h3 className="text-sm font-semibold text-gray-700 mb-3">Agendamentos de hoje</h3>
+        {agendamentosHoje.length === 0 ? (
+          <EmptyState
+            icon={Dog}
+            titulo="Nenhum agendamento para hoje"
+            descricao="Os agendamentos do dia aparecem aqui."
+          />
+        ) : (
+          <div className="grid gap-3">
+            {agendamentosHoje.map((a) => {
+              const pet = petInfo(a.petId);
+              const dono = donoDoPet(a.petId);
+
+              return (
+                <button
+                  key={a.id}
+                  type="button"
+                  onClick={() => onAgendamentoClick?.(a, dono)}
+                  className="w-full text-left p-4 bg-white border rounded-xl hover:shadow-md hover:border-blue-300 transition-all group focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-lg font-bold text-blue-600">{a.hora}</span>
+                        <StatusBadge status={a.status} colors={statusCor} />
                       </div>
-                      <div className="flex items-center gap-1">
-                        <DollarSign size={14} />
-                        <span>R$ {a.valor.toFixed(2)}</span>
+
+                      <div className="flex items-center gap-2 mb-1 min-w-0">
+                        <Dog size={16} className="text-gray-400 shrink-0" />
+                        <span className="font-medium text-gray-800 truncate">
+                          {pet?.nome || "Pet removido"}
+                        </span>
+                        {dono && <span className="text-sm text-gray-500 truncate">· {dono.nome}</span>}
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-x-4 text-sm text-gray-500">
+                        <span className="flex items-center gap-1">
+                          <Clock size={14} /> {a.servico}
+                        </span>
+                        <span>{formatCurrency(a.valor)}</span>
                       </div>
                     </div>
+
+                    <ChevronRight
+                      size={20}
+                      className="text-gray-300 group-hover:text-blue-400 transition-colors shrink-0"
+                    />
                   </div>
-                  
-                  <div className="ml-4 text-gray-300 group-hover:text-blue-400 transition-colors">
-                    <svg 
-                      xmlns="http://www.w3.org/2000/svg" 
-                      width="20" 
-                      height="20" 
-                      viewBox="0 0 24 24" 
-                      fill="none" 
-                      stroke="currentColor" 
-                      strokeWidth="2" 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round"
-                    >
-                      <polyline points="9 18 15 12 9 6"></polyline>
-                    </svg>
-                  </div>
-                </div>
-              </button>
-            );
-          })}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <div>
+        <h3 className="text-sm font-semibold text-gray-700 mb-3">Vendas por forma de pagamento</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {totalPorPagamento.map(({ forma, total }) => (
+            <div key={forma} className="border rounded-xl p-4">
+              <p className="text-xs text-gray-400">{forma}</p>
+              <p className="font-semibold text-lg mt-1">{formatCurrency(total)}</p>
+            </div>
+          ))}
         </div>
-      )}
+      </div>
     </div>
   );
 }

@@ -1,11 +1,10 @@
 import { useState } from "react";
+import { formatDate } from "../utils/format.js";
 
 export function useCalendar() {
   const hoje = new Date();
   const [mesAtual, setMesAtual] = useState(new Date(hoje.getFullYear(), hoje.getMonth(), 1));
-  const [diaSelecionado, setDiaSelecionado] = useState(
-    `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-${String(hoje.getDate()).padStart(2, "0")}`
-  );
+  const [diaSelecionado, setDiaSelecionado] = useState(formatDate(hoje));
 
   function diasDoMes(base) {
     const ano = base.getFullYear(), mes = base.getMonth();
@@ -25,10 +24,21 @@ export function useCalendar() {
     setMesAtual(new Date(mesAtual.getFullYear(), mesAtual.getMonth() + 1, 1));
   }
 
+  // Seleciona um dia (YYYY-MM-DD) e leva o calendário para o mês dele, para a
+  // agenda do dia acompanhar a data escolhida no formulário.
+  function irParaData(dataStr) {
+    if (!dataStr) return;
+    const [ano, mes, dia] = dataStr.split("-").map(Number);
+    if (!ano || !mes || !dia) return;
+    setDiaSelecionado(dataStr);
+    setMesAtual(new Date(ano, mes - 1, 1));
+  }
+
   return {
     mesAtual,
     diaSelecionado,
     setDiaSelecionado,
+    irParaData,
     diasDoMes,
     prevMes,
     nextMes,
