@@ -5,28 +5,28 @@ Sistema de gestão para petshop com arquitetura moderna e escalável usando Reac
 ## Funcionalidades
 
 ### Dashboard
-- Visão geral do negócio
-- Métricas financeiras (entradas, despesas, saldo)
-- Agendamentos do dia
+- Visão geral do negócio (clientes, pets, agendamentos do dia, faturamento)
+- Agendamentos do dia, com atalho para a ficha do cliente
 - Vendas por forma de pagamento
 
 ### Clientes
-- Cadastro de clientes (nome, telefone)
+- Cadastro e edição de clientes (nome, telefone com máscara)
 - Busca de clientes
-- Exclusão de clientes
+- Exclusão com confirmação, avisando o que será removido junto
 - Link direto para WhatsApp
 
 ### Pets
-- Cadastro de pets (nome, espécie, raça, cliente)
-- Busca de pets
+- Cadastro e edição de pets (nome, espécie, raça, dono)
+- Busca por nome, raça ou dono
 - Observações por pet
-- Exclusão de pets
+- Exclusão com confirmação
 
 ### Agendamentos
-- Agendamento de serviços (banho, tosa, veterinário, vacina)
+- Agendamento de serviços com preço e duração vindos do cadastro
+- Só oferece horários realmente livres, dentro do horário de funcionamento e
+  sem sobrepor outro agendamento
 - Controle de status (Agendado, Concluído, Cancelado)
-- Visualização em calendário mensal
-- Filtro por dia específico
+- Visualização em calendário mensal, com a agenda do dia selecionado
 
 ### Vendas
 - Registro de vendas
@@ -35,14 +35,21 @@ Sistema de gestão para petshop com arquitetura moderna e escalável usando Reac
 - Histórico de vendas
 
 ### Planos e Assinaturas
-- Planos recorrentes (Básico, Plus, Premium)
-- Associação de clientes a planos
+- Planos recorrentes (Básico, Plus, Premium ou os que você cadastrar)
+- Associação de clientes a planos, sem assinatura duplicada
+- Receita recorrente somada no financeiro
 - Cancelamento de assinaturas
 
 ### Financeiro
 - Registro de despesas
 - Balanço financeiro
 - Controle de entradas e saídas
+
+### Configurações
+- Horário de funcionamento (abertura, fechamento e intervalo entre horários),
+  usado pela agenda para calcular os horários livres
+- Cadastro de serviços (nome, preço e duração)
+- Cadastro de planos de assinatura
 
 ## Arquitetura
 
@@ -54,7 +61,9 @@ src/
 ├── components/
 │   ├── common/           # Componentes reutilizáveis
 │   │   ├── Button.jsx
-│   │   ├── Input.jsx
+│   │   ├── ConfirmDialog.jsx  # Diálogo de confirmação de exclusões
+│   │   ├── EmptyState.jsx     # Estado vazio padrão das listas
+│   │   ├── Input.jsx          # Campo com rótulo e mensagem de erro
 │   │   ├── StatusBadge.jsx
 │   │   └── WhatsAppLink.jsx
 │   ├── features/         # Componentes por funcionalidade
@@ -64,22 +73,29 @@ src/
 │   │   ├── agendamentos/Agendamentos.jsx
 │   │   ├── vendas/Vendas.jsx
 │   │   ├── planos/Planos.jsx
-│   │   └── financeiro/Financeiro.jsx
+│   │   ├── financeiro/Financeiro.jsx
+│   │   └── settings/Settings.jsx
 │   └── layout/           # Componentes de layout
-│       └── Sidebar.jsx   # Sidebar recolhível
+│       └── Sidebar.jsx   # Menu recolhível (gaveta no mobile)
 ├── context/
 │   ├── AppProvider.jsx    # Provider global com Context API
-│   └── appReducer.jsx     # Reducer central para gerenciamento de estado
+│   └── appReducer.js      # Reducer central para gerenciamento de estado
 ├── data/
-│   └── constants.jsx      # Constantes e dados estáticos
+│   ├── constants.js       # Constantes e dados iniciais
+│   └── migrarEstado.js    # Completa dados salvos por versões anteriores
 ├── hooks/
-│   └── useCalendar.jsx   # Custom hook para lógica de calendário
+│   ├── useCalendar.js     # Custom hook para lógica de calendário
+│   └── useConfirmacao.jsx # Diálogo de confirmação compartilhado
 ├── services/
-│   └── storageService.jsx # Serviço de persistência (localStorage)
+│   └── storageService.js  # Serviço de persistência (localStorage)
 ├── utils/
-│   └── format.jsx         # Funções utilitárias de formatação
+│   ├── availability.js    # Cálculo de horários livres na agenda
+│   ├── format.js          # Moeda, data, telefone e slug
+│   └── id.js              # Geração e comparação de ids
 ├── App.jsx                # Componente principal
-└── main.jsx              # Entry point
+└── main.jsx               # Entry point
+
+tests/                     # Testes com o runner nativo do Node
 ```
 
 ### Vantagens da Nova Arquitetura
@@ -91,6 +107,8 @@ src/
 ✅ **Manutenibilidade** - Código organizado e fácil de manter
 ✅ **Testabilidade** - Componentes isolados são mais fáceis de testar
 ✅ **Sidebar Recolhível** - Navegação escalável com categorias organizadas
+✅ **Responsivo** - Menu vira gaveta no celular e os formulários se empilham
+✅ **Testado** - Regras de negócio cobertas por testes automatizados
 
 ### Navegação por Categorias
 
@@ -98,6 +116,18 @@ src/
 - **OPERAÇÃO**: Agendamentos, Clientes, Pets, Vendas, Estoque
 - **GESTÃO**: Financeiro, Relatórios, Planos
 - **SISTEMA**: Configurações, Assinatura, Usuários, Permissões
+
+### Regras de Integridade
+
+- Excluir um cliente remove também seus pets, agendamentos e assinaturas.
+  As vendas permanecem no histórico financeiro, apenas sem o vínculo.
+- Excluir um pet remove os agendamentos dele.
+- Excluir um plano cancela as assinaturas correspondentes.
+- O id do plano é derivado do nome e não muda depois de criado, porque é a
+  chave usada pelas assinaturas.
+- Renomear um serviço atualiza os agendamentos que o utilizavam.
+- Dados salvos por versões anteriores são completados na carga
+  (`migrarEstado`), sem sobrescrever o que o usuário já cadastrou.
 
 ### Fluxo de Dados
 
@@ -135,12 +165,24 @@ npm run dev
 - `npm run dev` - Inicia servidor de desenvolvimento
 - `npm run build` - Build para produção
 - `npm run preview` - Preview do build de produção
+- `npm test` - Roda os testes (runner nativo do Node, sem dependências extras)
+
+## Testes
+
+Os testes cobrem o núcleo de regras do sistema — reducer, migração de estado,
+cálculo de horários disponíveis e formatação:
+
+```bash
+npm test
+```
 
 ## Próximas Melhorias
 
+- [x] Adicionar testes unitários
+- [x] Adicionar validações mais robustas
+- [x] Implementar a tela de Configurações
 - [ ] Adicionar roteamento (React Router)
 - [ ] Implementar autenticação
 - [ ] Migrar para banco de dados real
-- [ ] Adicionar testes unitários
-- [ ] Implementar funcionalidades pendentes (Estoque, Relatórios, Configurações, etc.)
-- [ ] Adicionar validações mais robustas
+- [ ] Implementar funcionalidades pendentes (Estoque, Relatórios, Assinatura,
+      Usuários e Permissões)
