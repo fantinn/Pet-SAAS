@@ -29,8 +29,8 @@ Sistema de gestão para petshop com arquitetura moderna e escalável usando Reac
 - Visualização em calendário mensal, com a agenda do dia selecionado
 
 ### Vendas
-- Registro de vendas
-- Itens customizáveis ou pré-definidos
+- Registro de vendas de serviços, produtos do estoque ou itens avulsos
+- Venda de produto dá baixa no estoque automaticamente
 - Controle de forma de pagamento (Pix, Cartão, Dinheiro)
 - Histórico de vendas
 
@@ -40,12 +40,28 @@ Sistema de gestão para petshop com arquitetura moderna e escalável usando Reac
 - Receita recorrente somada no financeiro
 - Cancelamento de assinaturas
 
+### Estoque
+- Cadastro de produtos com categoria, preço de custo e de venda, quantidade e
+  estoque mínimo
+- Alerta de reposição na tela e no Dashboard
+- Entrada (compra), baixa (perda ou uso interno) e ajuste de inventário, com
+  histórico de cada movimentação
+- Baixa automática ao vender um produto e devolução ao excluir a venda
+
+### Relatórios
+- Períodos prontos (este mês, mês passado, últimos 30 dias, este ano) ou
+  intervalo personalizado
+- Faturamento, despesas, lucro e ticket médio do período
+- Faturamento por dia, serviços e produtos mais vendidos, clientes que mais
+  gastaram e agendamentos por status com taxa de conclusão
+
 ### Financeiro
 - Registro de despesas
 - Balanço financeiro
 - Controle de entradas e saídas
 
 ### Configurações
+- Backup: exportar todos os dados em JSON e importar de volta
 - Horário de funcionamento (abertura, fechamento e intervalo entre horários),
   usado pela agenda para calcular os horários livres
 - Cadastro de serviços (nome, preço e duração)
@@ -74,7 +90,11 @@ src/
 │   │   ├── vendas/Vendas.jsx
 │   │   ├── planos/Planos.jsx
 │   │   ├── financeiro/Financeiro.jsx
-│   │   └── settings/Settings.jsx
+│   │   ├── estoque/Estoque.jsx
+│   │   ├── relatorios/Relatorios.jsx
+│   │   └── settings/
+│   │       ├── Settings.jsx
+│   │       └── BackupSection.jsx
 │   └── layout/           # Componentes de layout
 │       └── Sidebar.jsx   # Menu recolhível (gaveta no mobile)
 ├── context/
@@ -87,11 +107,13 @@ src/
 │   ├── useCalendar.js     # Custom hook para lógica de calendário
 │   └── useConfirmacao.jsx # Diálogo de confirmação compartilhado
 ├── services/
-│   └── storageService.js  # Serviço de persistência (localStorage)
+│   ├── storageService.js  # Serviço de persistência (localStorage)
+│   └── backupService.js   # Exportação e leitura dos arquivos de backup
 ├── utils/
 │   ├── availability.js    # Cálculo de horários livres na agenda
 │   ├── format.js          # Moeda, data, telefone e slug
-│   └── id.js              # Geração e comparação de ids
+│   ├── id.js              # Geração e comparação de ids
+│   └── relatorios.js      # Apuração dos números por período
 ├── App.jsx                # Componente principal
 └── main.jsx               # Entry point
 
@@ -126,6 +148,11 @@ tests/                     # Testes com o runner nativo do Node
 - O id do plano é derivado do nome e não muda depois de criado, porque é a
   chave usada pelas assinaturas.
 - Renomear um serviço atualiza os agendamentos que o utilizavam.
+- A quantidade de um produto só muda por movimentação, nunca editando o
+  cadastro, para o histórico nunca discordar do saldo.
+- Vender um produto dá baixa no estoque; excluir a venda devolve a quantidade
+  e registra o estorno. Vender mais do que existe é recusado.
+- Excluir um produto remove o histórico dele, mas preserva as vendas já feitas.
 - Dados salvos por versões anteriores são completados na carga
   (`migrarEstado`), sem sobrescrever o que o usuário já cadastrou.
 
@@ -145,6 +172,13 @@ tests/                     # Testes com o runner nativo do Node
 - Lucide React (ícones)
 - Context API (gerenciamento de estado)
 - localStorage (persistência)
+
+## Onde os dados ficam
+
+Tudo é salvo no `localStorage` do navegador — não há servidor. Isso significa
+que os dados são de **um navegador em um computador**: limpar o histórico,
+trocar de máquina ou usar uma janela anônima começa do zero. Por isso existe o
+backup em Configurações; exporte com frequência.
 
 ## Como usar
 
@@ -181,8 +215,9 @@ npm test
 - [x] Adicionar testes unitários
 - [x] Adicionar validações mais robustas
 - [x] Implementar a tela de Configurações
+- [x] Implementar Estoque e Relatórios
+- [x] Backup e restauração dos dados
 - [ ] Adicionar roteamento (React Router)
 - [ ] Implementar autenticação
 - [ ] Migrar para banco de dados real
-- [ ] Implementar funcionalidades pendentes (Estoque, Relatórios, Assinatura,
-      Usuários e Permissões)
+- [ ] Implementar funcionalidades pendentes (Assinatura, Usuários e Permissões)
