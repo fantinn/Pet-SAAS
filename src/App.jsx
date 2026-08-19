@@ -14,6 +14,7 @@ import Pets from "./components/features/pets/Pets";
 import Agendamentos from "./components/features/agendamentos/Agendamentos";
 import Vendas from "./components/features/vendas/Vendas";
 import Estoque from "./components/features/estoque/Estoque";
+import Relatorios from "./components/features/relatorios/Relatorios";
 import Planos from "./components/features/planos/Planos";
 import Financeiro from "./components/features/financeiro/Financeiro";
 import Settings from "./components/features/settings/Settings";
@@ -243,6 +244,8 @@ export default function PetshopSaaS() {
               onAjustar={actions.ajustarEstoque}
             />
           )}
+
+          {tab === "relatorios" && <Relatorios state={state} />}
 
           {tab === "planos" && (
             <Planos

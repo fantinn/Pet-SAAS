@@ -24,7 +24,7 @@ const MENU_ITEMS = [
     category: "GESTÃO",
     items: [
       { id: "financeiro", label: "Financeiro", icon: Wallet },
-      { id: "relatorios", label: "Relatórios", icon: BarChart3, emBreve: true },
+      { id: "relatorios", label: "Relatórios", icon: BarChart3 },
       { id: "planos", label: "Planos", icon: Tag },
     ],
   },
