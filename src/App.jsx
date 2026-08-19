@@ -147,6 +147,8 @@ export default function PetshopSaaS() {
 
           {tab === "settings" && (
             <Settings
+              estado={state}
+              onRestaurarBackup={actions.restaurarEstado}
               servicos={state.servicos}
               planos={state.planos}
               configuracoes={state.configuracoes}

@@ -109,6 +109,8 @@ export function AppProvider({ children }) {
       deletePlano: (id) => dispatch({ type: actionTypes.DELETE_PLANO, payload: id }),
 
       updateConfiguracoes: (payload) => dispatch({ type: actionTypes.UPDATE_CONFIGURACOES, payload }),
+
+      restaurarEstado: (payload) => dispatch({ type: actionTypes.RESTAURAR_ESTADO, payload }),
     }),
     []
   );

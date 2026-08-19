@@ -134,3 +134,10 @@ test("ação desconhecida devolve o mesmo estado", () => {
   const inicial = estado();
   assert.equal(appReducer(inicial, { type: "NAO_EXISTE" }), inicial);
 });
+
+test("restaurar backup substitui o estado inteiro", () => {
+  const backup = { ...estado(), clientes: [{ id: "x", nome: "Do backup", telefone: "" }], pets: [] };
+  const s = appReducer(estado(), { type: A.RESTAURAR_ESTADO, payload: backup });
+  assert.deepEqual(s.clientes, backup.clientes);
+  assert.deepEqual(s.pets, []);
+});

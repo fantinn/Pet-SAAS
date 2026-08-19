@@ -36,6 +36,8 @@ export const actionTypes = {
   DELETE_PLANO: "DELETE_PLANO",
 
   UPDATE_CONFIGURACOES: "UPDATE_CONFIGURACOES",
+
+  RESTAURAR_ESTADO: "RESTAURAR_ESTADO",
 };
 
 const ORDEM_STATUS = ["Agendado", "Concluído", "Cancelado"];
@@ -244,6 +246,11 @@ export function appReducer(state, action) {
 
     case actionTypes.UPDATE_CONFIGURACOES: {
       return { ...state, configuracoes: { ...state.configuracoes, ...action.payload } };
+    }
+
+    // Substitui tudo pelo conteúdo de um backup já validado e migrado.
+    case actionTypes.RESTAURAR_ESTADO: {
+      return action.payload;
     }
 
     default:

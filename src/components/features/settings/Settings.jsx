@@ -6,6 +6,7 @@ import EmptyState from "../../common/EmptyState";
 import { formatCurrency } from "../../../utils/format";
 import { mesmoId } from "../../../utils/id";
 import { useConfirmacao } from "../../../hooks/useConfirmacao";
+import BackupSection from "./BackupSection";
 
 const INTERVALOS = [15, 30, 60];
 const classeSelect =
@@ -36,9 +37,11 @@ function validarPlano({ nome, descricao, preco }) {
 const temErro = (erros) => Object.values(erros).some(Boolean);
 
 export default function Settings({
+  estado,
   servicos,
   planos,
   configuracoes,
+  onRestaurarBackup,
   onAddServico,
   onUpdateServico,
   onDeleteServico,
@@ -497,6 +500,8 @@ export default function Settings({
           </div>
         )}
       </section>
+
+      <BackupSection state={estado} onRestaurar={onRestaurarBackup} />
     </div>
   );
 }
