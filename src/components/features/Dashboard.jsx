@@ -1,6 +1,6 @@
 import StatusBadge from "../common/StatusBadge";
 import EmptyState from "../common/EmptyState";
-import { Dog, Clock, Users, CalendarDays, ChevronRight, CreditCard } from "lucide-react";
+import { Dog, Clock, Users, CalendarDays, ChevronRight, CreditCard, AlertTriangle } from "lucide-react";
 import { formatCurrency } from "../../utils/format";
 
 function Metrica({ icon: Icon, titulo, valor }) {
@@ -24,7 +24,9 @@ export default function Dashboard({
   statusCor,
   petInfo,
   donoDoPet,
+  produtosEmFalta,
   onAgendamentoClick,
+  onVerEstoque,
 }) {
   return (
     <div className="space-y-6">
@@ -36,6 +38,24 @@ export default function Dashboard({
         <Metrica icon={CalendarDays} titulo="Hoje" valor={agendamentosHoje.length} />
         <Metrica icon={CreditCard} titulo="Faturamento" valor={formatCurrency(totalEntradas)} />
       </div>
+
+      {produtosEmFalta.length > 0 && (
+        <button
+          type="button"
+          onClick={onVerEstoque}
+          className="w-full text-left border border-amber-200 bg-amber-50 rounded-xl p-4 hover:bg-amber-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+        >
+          <p className="text-sm font-medium text-amber-800 flex items-center gap-2">
+            <AlertTriangle size={16} />
+            {produtosEmFalta.length === 1
+              ? "1 produto precisa de reposição"
+              : `${produtosEmFalta.length} produtos precisam de reposição`}
+          </p>
+          <p className="text-xs text-amber-700 mt-1">
+            {produtosEmFalta.map((p) => `${p.nome} (${p.quantidade})`).join(" · ")}
+          </p>
+        </button>
+      )}
 
       <div>
         <h3 className="text-sm font-semibold text-gray-700 mb-3">Agendamentos de hoje</h3>

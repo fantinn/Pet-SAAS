@@ -17,7 +17,7 @@ const MENU_ITEMS = [
       { id: "clientes", label: "Clientes", icon: Users },
       { id: "pets", label: "Pets", icon: Dog },
       { id: "vendas", label: "Vendas", icon: ShoppingCart },
-      { id: "estoque", label: "Estoque", icon: Package, emBreve: true },
+      { id: "estoque", label: "Estoque", icon: Package },
     ],
   },
   {

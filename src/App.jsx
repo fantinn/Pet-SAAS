@@ -13,6 +13,7 @@ import Clientes from "./components/features/clientes/Clientes";
 import Pets from "./components/features/pets/Pets";
 import Agendamentos from "./components/features/agendamentos/Agendamentos";
 import Vendas from "./components/features/vendas/Vendas";
+import Estoque from "./components/features/estoque/Estoque";
 import Planos from "./components/features/planos/Planos";
 import Financeiro from "./components/features/financeiro/Financeiro";
 import Settings from "./components/features/settings/Settings";
@@ -74,16 +75,8 @@ export default function PetshopSaaS() {
     setNovoAg({ petId: "", servico: "", data: novoAg.data, hora: "", status: "Agendado", valor: 0 });
   }
 
-  function addVenda() {
-    const item = novaVenda.itemTipo === "custom" ? novaVenda.itemCustom.trim() : novaVenda.itemTipo;
-    actions.addVenda({
-      clienteId: novaVenda.clienteId,
-      item,
-      qtd: novaVenda.qtd,
-      valor: novaVenda.valor,
-      formaPagamento: novaVenda.formaPagamento,
-      data: formatDate(new Date()),
-    });
+  function addVenda(dados) {
+    actions.addVenda({ ...dados, data: formatDate(new Date()) });
     setNovaVenda(VENDA_VAZIA);
   }
 
@@ -141,7 +134,9 @@ export default function PetshopSaaS() {
               statusCor={STATUS_COR}
               petInfo={derived.petInfo}
               donoDoPet={derived.donoDoPet}
+              produtosEmFalta={derived.produtosEmFalta}
               onAgendamentoClick={handleAgendamentoClick}
+              onVerEstoque={() => setTab("estoque")}
             />
           )}
 
@@ -224,6 +219,7 @@ export default function PetshopSaaS() {
               clientes={state.clientes}
               vendas={state.vendas}
               servicosPadrao={state.servicos}
+              produtos={state.produtos}
               formasPagamento={FORMAS_PAGAMENTO}
               novaVenda={novaVenda}
               setNovaVenda={setNovaVenda}
@@ -231,6 +227,20 @@ export default function PetshopSaaS() {
               delVenda={actions.deleteVenda}
               totalVendas={derived.totalVendas}
               nomeCliente={derived.nomeCliente}
+            />
+          )}
+
+          {tab === "estoque" && (
+            <Estoque
+              produtos={state.produtos}
+              movimentacoes={state.movimentacoes}
+              produtosEmFalta={derived.produtosEmFalta}
+              valorDoEstoque={derived.valorDoEstoque}
+              onAddProduto={actions.addProduto}
+              onUpdateProduto={actions.updateProduto}
+              onDeleteProduto={actions.deleteProduto}
+              onMovimentar={actions.movimentarEstoque}
+              onAjustar={actions.ajustarEstoque}
             />
           )}
 

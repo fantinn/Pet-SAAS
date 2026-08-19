@@ -52,6 +52,10 @@ export function AppProvider({ children }) {
         .reduce((s, v) => s + v.qtd * v.valor, 0),
     }));
 
+    const produtoInfo = (id) => state.produtos.find((p) => mesmoId(p.id, id));
+    const produtosEmFalta = state.produtos.filter((p) => p.quantidade <= p.estoqueMinimo);
+    const valorDoEstoque = state.produtos.reduce((s, p) => s + p.quantidade * p.precoCusto, 0);
+
     const agendamentosHoje = state.agendamentos.filter((a) => a.data === hojeStr);
     const contaNoDia = (dataStr) => state.agendamentos.filter((a) => a.data === dataStr).length;
 
@@ -68,6 +72,9 @@ export function AppProvider({ children }) {
       totalDespesas,
       saldo,
       totalPorPagamento,
+      produtoInfo,
+      produtosEmFalta,
+      valorDoEstoque,
       agendamentosHoje,
       contaNoDia,
     };
@@ -90,6 +97,12 @@ export function AppProvider({ children }) {
       deleteAgendamento: (id) => dispatch({ type: actionTypes.DELETE_AGENDAMENTO, payload: id }),
       cicloStatusAgendamento: (id) =>
         dispatch({ type: actionTypes.CICLO_STATUS_AGENDAMENTO, payload: id }),
+
+      addProduto: (payload) => dispatch({ type: actionTypes.ADD_PRODUTO, payload }),
+      updateProduto: (id, novosDados) => dispatch({ type: actionTypes.UPDATE_PRODUTO, payload: { id, ...novosDados } }),
+      deleteProduto: (id) => dispatch({ type: actionTypes.DELETE_PRODUTO, payload: id }),
+      movimentarEstoque: (payload) => dispatch({ type: actionTypes.MOVIMENTAR_ESTOQUE, payload }),
+      ajustarEstoque: (payload) => dispatch({ type: actionTypes.AJUSTAR_ESTOQUE, payload }),
 
       addVenda: (payload) => dispatch({ type: actionTypes.ADD_VENDA, payload }),
       deleteVenda: (id) => dispatch({ type: actionTypes.DELETE_VENDA, payload: id }),

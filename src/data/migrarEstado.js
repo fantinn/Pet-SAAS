@@ -28,6 +28,17 @@ export function migrarEstado(salvo, inicial) {
       valor: numero(v.valor),
     })),
     assinaturas: lista(salvo.assinaturas, inicial.assinaturas),
+    produtos: lista(salvo.produtos, inicial.produtos).map((p) => ({
+      ...p,
+      precoVenda: numero(p.precoVenda),
+      precoCusto: numero(p.precoCusto),
+      quantidade: numero(p.quantidade),
+      estoqueMinimo: numero(p.estoqueMinimo),
+    })),
+    movimentacoes: lista(salvo.movimentacoes, inicial.movimentacoes).map((m) => ({
+      ...m,
+      quantidade: numero(m.quantidade),
+    })),
     despesas: lista(salvo.despesas, inicial.despesas).map((d) => ({ ...d, valor: numero(d.valor) })),
     servicos: lista(salvo.servicos, inicial.servicos).map((s) => ({
       ...s,

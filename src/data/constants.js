@@ -7,6 +7,11 @@ export const ESTADO_INICIAL = {
   ],
   agendamentos: [],
   vendas: [],
+  produtos: [
+    { id: "prod-racao", nome: "Ração Premium 10kg", categoria: "Alimentação", precoCusto: 120, precoVenda: 189.9, quantidade: 8, estoqueMinimo: 3 },
+    { id: "prod-shampoo", nome: "Shampoo Hipoalergênico", categoria: "Higiene", precoCusto: 18, precoVenda: 34.9, quantidade: 2, estoqueMinimo: 5 },
+  ],
+  movimentacoes: [],
   assinaturas: [],
   despesas: [],
   servicos: [
@@ -29,6 +34,18 @@ export const ESTADO_INICIAL = {
 };
 
 export const FORMAS_PAGAMENTO = ["Pix", "Cartão", "Dinheiro"];
+
+export const CATEGORIAS_PRODUTO = ["Alimentação", "Higiene", "Brinquedos", "Acessórios", "Medicamentos", "Outros"];
+
+// Motivos de saída/entrada que não passam por uma venda.
+export const MOTIVOS_MOVIMENTACAO = {
+  entrada: "Entrada (compra)",
+  venda: "Venda",
+  estorno: "Estorno de venda",
+  perda: "Perda / vencimento",
+  ajuste: "Ajuste de inventário",
+  uso: "Uso interno",
+};
 
 export const ESPECIES = ["Cachorro", "Gato", "Outro"];
 
