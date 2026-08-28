@@ -19,8 +19,8 @@ import Settings from "./components/features/settings/Settings";
 import { useCalendar } from "./hooks/useCalendar";
 
 export default function PetshopSaaS() {
-  const { state, derived, actions } = useApp();
-  
+  const { state, derived, actions, loading, error } = useApp();
+
   // Estado local de UI (não persiste)
   const [tab, setTab] = useState("dashboard");
   const [buscaCliente, setBuscaCliente] = useState("");
@@ -65,7 +65,7 @@ export default function PetshopSaaS() {
     actions.deleteCliente(id);
   }
 
-function addAg() {
+  function addAg() {
     if (!novoAg.petId || !novoAg.data || !novoAg.hora) return;
     actions.addAgendamento(novoAg);
     setNovoAg({ petId: "", servico: "", data: "", hora: "", status: "Agendado", valor: 0 });
@@ -106,7 +106,7 @@ function addAg() {
   function assinarPlano(planoId) {
     if (!clienteParaAssinar) return;
     actions.addAssinatura({
-      clienteId: Number(clienteParaAssinar),
+      clienteId: clienteParaAssinar,
       planoId,
       dataInicio: formatDate(new Date()),
     });
@@ -145,6 +145,16 @@ function addAg() {
       <Sidebar tab={tab} setTab={setTab} />
 
       <main className="flex-1 bg-white border-l p-6 overflow-auto">
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+            Erro ao sincronizar com o banco: {error}
+          </div>
+        )}
+
+        {loading ? (
+          <p className="text-gray-500">Carregando...</p>
+        ) : (
+          <>
         {tab === "dashboard" && (
           <Dashboard 
             clientes={state.clientes}
@@ -169,7 +179,7 @@ function addAg() {
             onUpdatePlano={actions.updatePlano}
             onDeletePlano={actions.deletePlano}
             onUpdateConfiguracoes={actions.updateConfiguracoes}
-            onLoadState={actions.loadState}
+            onLoadDemoData={actions.loadDemoData}
           />
         )}
 
@@ -207,6 +217,7 @@ function addAg() {
             diaSelecionado={diaSelecionado}
             setDiaSelecionado={setDiaSelecionado}
             petInfo={derived.petInfo}
+            nomeCliente={derived.nomeCliente}
             contaNoDia={contaNoDia}
             statusCor={STATUS_COR}
             diasDoMes={diasDoMes}
@@ -254,6 +265,8 @@ function addAg() {
             totalPlanos={derived.totalPlanos}
             saldo={derived.saldo}
           />
+        )}
+          </>
         )}
       </main>
     </div>

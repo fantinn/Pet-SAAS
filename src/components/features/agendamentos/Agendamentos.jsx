@@ -18,14 +18,15 @@ export default function Agendamentos({
   diaSelecionado, 
   setDiaSelecionado,
   petInfo,
+  nomeCliente,
   contaNoDia,
   statusCor,
-  diasDoMes 
+  diasDoMes
 }) {
   const agendamentosDoDia = agendamentos.filter((a) => a.data === diaSelecionado);
   
   // Helper functions for smart flow
-  const getPetSelected = () => pets.find(p => p.id === Number(novoAg.petId));
+  const getPetSelected = () => pets.find(p => String(p.id) === String(novoAg.petId));
   const getServicoSelected = () => servicosPadrao.find(s => s.nome === novoAg.servico);
   const getHorariosDisponiveis = () => {
     if (!novoAg.data || !novoAg.servico) return [];
@@ -88,7 +89,7 @@ export default function Agendamentos({
                 </select>
                 {petSelected && (
                   <div className="mt-2 p-2 bg-blue-50 rounded text-sm">
-                    <span className="font-medium">Dono:</span> {petInfo(petSelected.clienteId)?.nome || "?"}
+                    <span className="font-medium">Dono:</span> {nomeCliente(petSelected.clienteId)}
                   </div>
                 )}
               </div>

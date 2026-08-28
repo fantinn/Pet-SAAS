@@ -2,8 +2,9 @@ import { useState } from "react";
 import {
   LayoutDashboard, Calendar, Users, ShoppingCart,
   Package, Wallet, BarChart3, Tag, Settings,
-  CreditCard, UserCog, Shield, ChevronLeft, ChevronRight
+  CreditCard, UserCog, Shield, ChevronLeft, ChevronRight, LogOut
 } from "lucide-react";
+import { useAuth } from "../../context/AuthProvider.jsx";
 
 const MENU_ITEMS = [
   {
@@ -42,6 +43,8 @@ const MENU_ITEMS = [
 
 export default function Sidebar({ tab, setTab }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const { user, signOut } = useAuth();
+  const inicial = (user?.email || "?").charAt(0).toUpperCase();
 
   return (
     <aside 
@@ -109,13 +112,15 @@ export default function Sidebar({ tab, setTab }) {
       {/* Footer */}
       <div className="absolute bottom-0 left-0 right-0 p-4 border-t bg-white">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-semibold">
-            A
+          <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-semibold shrink-0">
+            {inicial}
           </div>
           {!isCollapsed && (
-            <div>
-              <p className="text-sm font-medium">Admin</p>
-              <p className="text-xs text-gray-500">Administrador</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate" title={user?.email}>{user?.email}</p>
+              <button onClick={signOut} className="text-xs text-gray-500 hover:text-red-600 flex items-center gap-1">
+                <LogOut size={12} /> Sair
+              </button>
             </div>
           )}
         </div>

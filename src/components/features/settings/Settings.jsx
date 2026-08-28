@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Plus, Trash2, Clock, DollarSign, Settings as SettingsIcon, Database } from "lucide-react";
 import Button from "../../common/Button";
-import { buildSeedData } from "../../../data/seedData.jsx";
 
 export default function Settings({
   servicos,
@@ -14,17 +13,16 @@ export default function Settings({
   onUpdatePlano,
   onDeletePlano,
   onUpdateConfiguracoes,
-  onLoadState,
+  onLoadDemoData,
 }) {
   const [novoServico, setNovoServico] = useState({ nome: "", preco: "", duracao: "" });
-  const [novoPlano, setNovoPlano] = useState({ id: "", nome: "", descricao: "", preco: "" });
+  const [novoPlano, setNovoPlano] = useState({ nome: "", descricao: "", preco: "" });
   const [horarioAbertura, setHorarioAbertura] = useState(configuracoes.horarioAbertura || 8);
   const [horarioFechamento, setHorarioFechamento] = useState(configuracoes.horarioFechamento || 18);
 
   function handleAddServico() {
     if (!novoServico.nome || !novoServico.preco || !novoServico.duracao) return;
     onAddServico({
-      id: Date.now(),
       nome: novoServico.nome,
       preco: Number(novoServico.preco),
       duracao: Number(novoServico.duracao)
@@ -38,14 +36,13 @@ export default function Settings({
   }
 
   function handleAddPlano() {
-    if (!novoPlano.id || !novoPlano.nome || !novoPlano.descricao || !novoPlano.preco) return;
+    if (!novoPlano.nome || !novoPlano.descricao || !novoPlano.preco) return;
     onAddPlano({
-      id: novoPlano.id,
       nome: novoPlano.nome,
       descricao: novoPlano.descricao,
       preco: Number(novoPlano.preco)
     });
-    setNovoPlano({ id: "", nome: "", descricao: "", preco: "" });
+    setNovoPlano({ nome: "", descricao: "", preco: "" });
   }
 
   function handleUpdatePlano(id, campo, valor) {
@@ -64,7 +61,7 @@ export default function Settings({
     if (!window.confirm("Isso vai substituir todos os dados atuais (clientes, pets, vendas, etc) pelos dados de demonstração. Continuar?")) {
       return;
     }
-    onLoadState(buildSeedData());
+    onLoadDemoData();
   }
 
   return (
@@ -200,22 +197,13 @@ export default function Settings({
         
         <div className="mb-6 p-4 bg-white rounded-lg border">
           <h4 className="font-medium mb-3">Adicionar Novo Plano</h4>
-          <div className="grid grid-cols-2 gap-3 mb-3">
-            <input
-              type="text"
-              placeholder="ID do plano (ex: premium)"
-              value={novoPlano.id}
-              onChange={(e) => setNovoPlano({ ...novoPlano, id: e.target.value })}
-              className="px-3 py-2 border rounded-lg"
-            />
-            <input
-              type="text"
-              placeholder="Nome do plano"
-              value={novoPlano.nome}
-              onChange={(e) => setNovoPlano({ ...novoPlano, nome: e.target.value })}
-              className="px-3 py-2 border rounded-lg"
-            />
-          </div>
+          <input
+            type="text"
+            placeholder="Nome do plano"
+            value={novoPlano.nome}
+            onChange={(e) => setNovoPlano({ ...novoPlano, nome: e.target.value })}
+            className="w-full px-3 py-2 border rounded-lg mb-3"
+          />
           <input
             type="text"
             placeholder="Descrição do plano"
@@ -240,22 +228,13 @@ export default function Settings({
         <div className="space-y-3">
           {planos.map((plano) => (
             <div key={plano.id} className="p-4 bg-white rounded-lg border">
-              <div className="grid grid-cols-2 gap-3 mb-3">
-                <input
-                  type="text"
-                  value={plano.id}
-                  onChange={(e) => handleUpdatePlano(plano.id, 'id', e.target.value)}
-                  className="px-3 py-2 border rounded-lg font-medium"
-                  placeholder="ID"
-                />
-                <input
-                  type="text"
-                  value={plano.nome}
-                  onChange={(e) => handleUpdatePlano(plano.id, 'nome', e.target.value)}
-                  className="px-3 py-2 border rounded-lg font-medium"
-                  placeholder="Nome"
-                />
-              </div>
+              <input
+                type="text"
+                value={plano.nome}
+                onChange={(e) => handleUpdatePlano(plano.id, 'nome', e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg font-medium mb-3"
+                placeholder="Nome"
+              />
               <textarea
                 value={plano.descricao}
                 onChange={(e) => handleUpdatePlano(plano.id, 'descricao', e.target.value)}
