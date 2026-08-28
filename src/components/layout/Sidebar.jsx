@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { 
-  LayoutDashboard, Calendar, Users, Dog, ShoppingCart, 
-  Package, Wallet, BarChart3, Tag, Settings, 
-  CreditCard, UserCog, Shield, ChevronLeft, ChevronRight 
+import {
+  LayoutDashboard, Calendar, Users, ShoppingCart,
+  Package, Wallet, BarChart3, Tag, Settings,
+  CreditCard, UserCog, Shield, ChevronLeft, ChevronRight
 } from "lucide-react";
 
 const MENU_ITEMS = [
@@ -17,7 +17,6 @@ const MENU_ITEMS = [
     items: [
       { id: "agendamentos", label: "Agendamentos", icon: Calendar },
       { id: "clientes", label: "Clientes", icon: Users },
-      { id: "pets", label: "Pets", icon: Dog },
       { id: "vendas", label: "Vendas", icon: ShoppingCart },
       { id: "estoque", label: "Estoque", icon: Package },
     ],

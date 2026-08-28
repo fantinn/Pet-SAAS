@@ -1,18 +1,20 @@
 import { useState } from "react";
-import { Plus, Trash2, Clock, DollarSign, Settings as SettingsIcon } from "lucide-react";
+import { Plus, Trash2, Clock, DollarSign, Settings as SettingsIcon, Database } from "lucide-react";
 import Button from "../../common/Button";
+import { buildSeedData } from "../../../data/seedData.jsx";
 
-export default function Settings({ 
-  servicos, 
-  planos, 
-  configuracoes, 
-  onAddServico, 
-  onUpdateServico, 
+export default function Settings({
+  servicos,
+  planos,
+  configuracoes,
+  onAddServico,
+  onUpdateServico,
   onDeleteServico,
   onAddPlano,
   onUpdatePlano,
   onDeletePlano,
-  onUpdateConfiguracoes
+  onUpdateConfiguracoes,
+  onLoadState,
 }) {
   const [novoServico, setNovoServico] = useState({ nome: "", preco: "", duracao: "" });
   const [novoPlano, setNovoPlano] = useState({ id: "", nome: "", descricao: "", preco: "" });
@@ -58,11 +60,32 @@ export default function Settings({
     });
   }
 
+  function handleLoadSeedData() {
+    if (!window.confirm("Isso vai substituir todos os dados atuais (clientes, pets, vendas, etc) pelos dados de demonstração. Continuar?")) {
+      return;
+    }
+    onLoadState(buildSeedData());
+  }
+
   return (
     <div className="space-y-8">
       <div className="flex items-center gap-3">
         <SettingsIcon size={24} />
         <h2 className="text-xl font-semibold">Configurações</h2>
+      </div>
+
+      {/* Dados de Demonstração */}
+      <div className="bg-gray-50 p-6 rounded-lg">
+        <h3 className="font-semibold mb-2 flex items-center gap-2">
+          <Database size={18} /> Dados de Demonstração
+        </h3>
+        <p className="text-sm text-gray-600 mb-4">
+          Preenche o sistema com clientes, pets, agendamentos, vendas, assinaturas e despesas fictícios,
+          só para você visualizar como o app fica em uso. Substitui os dados atuais.
+        </p>
+        <Button onClick={handleLoadSeedData} variant="secondary">
+          <Database size={16} /> Carregar dados de demonstração
+        </Button>
       </div>
 
       {/* Horário de Funcionamento */}

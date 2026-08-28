@@ -9,7 +9,6 @@ import Sidebar from "./components/layout/Sidebar";
 // Feature components
 import Dashboard from "./components/features/Dashboard";
 import Clientes from "./components/features/clientes/Clientes";
-import Pets from "./components/features/pets/Pets";
 import Agendamentos from "./components/features/agendamentos/Agendamentos";
 import Vendas from "./components/features/vendas/Vendas";
 import Planos from "./components/features/planos/Planos";
@@ -25,13 +24,10 @@ export default function PetshopSaaS() {
   // Estado local de UI (não persiste)
   const [tab, setTab] = useState("dashboard");
   const [buscaCliente, setBuscaCliente] = useState("");
-  const [buscaPet, setBuscaPet] = useState("");
-  const [petDetalheId, setPetDetalheId] = useState(null);
 
   // Formulários locais
   const [novoCliente, setNovoCliente] = useState({ nome: "", telefone: "" });
-  const [novoPet, setNovoPet] = useState({ nome: "", especie: "Cachorro", raca: "", clienteId: "" });
-  
+
   const [novoAg, setNovoAg] = useState({
     petId: "",
     servico: "",
@@ -65,29 +61,11 @@ export default function PetshopSaaS() {
     actions.updateCliente(id, novosDados);
   }
 
-  function addPet() {
-    if (!novoPet.nome || !novoPet.clienteId) return;
-    actions.addPet(novoPet);
-    setNovoPet({ nome: "", especie: "Cachorro", raca: "", clienteId: "" });
-  }
-
-  function updatePet(id, novosDados) {
-    actions.updatePet(id, novosDados);
-  }
-
-  function atualizarObs(id, texto) {
-    actions.updatePetObservacoes(id, texto);
-  }
-
   function delCliente(id) {
     actions.deleteCliente(id);
   }
 
-  function delPet(id) {
-    actions.deletePet(id);
-  }
-
-  function addAg() {
+function addAg() {
     if (!novoAg.petId || !novoAg.data || !novoAg.hora) return;
     actions.addAgendamento(novoAg);
     setNovoAg({ petId: "", servico: "", data: "", hora: "", status: "Agendado", valor: 0 });
@@ -191,6 +169,7 @@ export default function PetshopSaaS() {
             onUpdatePlano={actions.updatePlano}
             onDeletePlano={actions.deletePlano}
             onUpdateConfiguracoes={actions.updateConfiguracoes}
+            onLoadState={actions.loadState}
           />
         )}
 
@@ -205,23 +184,10 @@ export default function PetshopSaaS() {
             addCliente={addCliente}
             delCliente={delCliente}
             updateCliente={updateCliente}
-          />
-        )}
-
-        {tab === "pets" && (
-          <Pets
-            pets={state.pets}
-            clientes={state.clientes}
-            buscaPet={buscaPet}
-            setBuscaPet={setBuscaPet}
-            novoPet={novoPet}
-            setNovoPet={setNovoPet}
-            addPet={addPet}
-            delPet={delPet}
-            petDetalheId={petDetalheId}
-            setPetDetalheId={setPetDetalheId}
-            atualizarObs={atualizarObs}
-            updatePet={updatePet}
+            addPet={actions.addPet}
+            delPet={actions.deletePet}
+            updatePet={actions.updatePet}
+            atualizarObs={actions.updatePetObservacoes}
           />
         )}
 

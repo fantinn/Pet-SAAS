@@ -101,6 +101,8 @@ export function AppProvider({ children }) {
       deletePlano: (id) => dispatch({ type: actionTypes.DELETE_PLANO, payload: id }),
 
       updateConfiguracoes: (payload) => dispatch({ type: actionTypes.UPDATE_CONFIGURACOES, payload }),
+
+      loadState: (payload) => dispatch({ type: actionTypes.LOAD_STATE, payload }),
     }),
     []
   );

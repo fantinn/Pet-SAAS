@@ -34,6 +34,8 @@ export const actionTypes = {
   DELETE_PLANO: "DELETE_PLANO",
 
   UPDATE_CONFIGURACOES: "UPDATE_CONFIGURACOES",
+
+  LOAD_STATE: "LOAD_STATE",
 };
 
 const ORDEM_STATUS = ["Agendado", "Concluído", "Cancelado"];
@@ -192,6 +194,10 @@ export function appReducer(state, action) {
 
     case actionTypes.UPDATE_CONFIGURACOES: {
       return { ...state, configuracoes: { ...state.configuracoes, ...action.payload } };
+    }
+
+    case actionTypes.LOAD_STATE: {
+      return action.payload;
     }
 
     default:
