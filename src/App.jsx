@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "./context/AppProvider";
 import { FORMAS_PAGAMENTO, STATUS_COR } from "./data/constants";
 import { formatDate, deslocarMes } from "./utils/format";
@@ -86,10 +86,19 @@ export default function PetshopSaaS() {
     [derived, mesFinanceiro]
   );
 
+  // Evita duplicar registros no banco quando o usuário clica/toca duas vezes
+  // rápido (comum no celular) enquanto a chamada ao Supabase ainda está em voo.
+  const travasEmAndamento = useRef(new Set());
+  function umaVezPorVez(chave, fn) {
+    if (travasEmAndamento.current.has(chave)) return;
+    travasEmAndamento.current.add(chave);
+    Promise.resolve(fn()).finally(() => travasEmAndamento.current.delete(chave));
+  }
+
   // Handlers
   function addCliente() {
     if (!novoCliente.nome) return;
-    actions.addCliente(novoCliente);
+    umaVezPorVez("addCliente", () => actions.addCliente(novoCliente));
     setNovoCliente({ nome: "", telefone: "" });
   }
 
@@ -103,7 +112,7 @@ export default function PetshopSaaS() {
 
   function addAg() {
     if (!novoAg.petId || !novoAg.data || !novoAg.hora) return;
-    actions.addAgendamento(novoAg);
+    umaVezPorVez("addAg", () => actions.addAgendamento(novoAg));
     setNovoAg({ petId: "", servico: "", data: "", hora: "", status: "Agendado", valor: 0 });
   }
 
@@ -118,13 +127,15 @@ export default function PetshopSaaS() {
   function addVenda() {
     const item = novaVenda.itemTipo === "custom" ? novaVenda.itemCustom : novaVenda.itemTipo;
     if (!item || !novaVenda.valor) return;
-    actions.addVenda({
-      clienteId: novaVenda.clienteId,
-      item,
-      qtd: Number(novaVenda.qtd) || 1,
-      valor: Number(novaVenda.valor),
-      formaPagamento: novaVenda.formaPagamento,
-    });
+    umaVezPorVez("addVenda", () =>
+      actions.addVenda({
+        clienteId: novaVenda.clienteId,
+        item,
+        qtd: Number(novaVenda.qtd) || 1,
+        valor: Number(novaVenda.valor),
+        formaPagamento: novaVenda.formaPagamento,
+      })
+    );
     setNovaVenda({
       clienteId: "",
       itemTipo: "",
@@ -141,11 +152,13 @@ export default function PetshopSaaS() {
 
   function assinarPlano(planoId) {
     if (!clienteParaAssinar) return;
-    actions.addAssinatura({
-      clienteId: clienteParaAssinar,
-      planoId,
-      dataInicio: formatDate(new Date()),
-    });
+    umaVezPorVez(`assinarPlano-${planoId}`, () =>
+      actions.addAssinatura({
+        clienteId: clienteParaAssinar,
+        planoId,
+        dataInicio: formatDate(new Date()),
+      })
+    );
   }
 
   function cancelarAssinatura(id) {
@@ -154,11 +167,13 @@ export default function PetshopSaaS() {
 
   function addDespesa() {
     if (!novaDespesa.descricao || !novaDespesa.valor) return;
-    actions.addDespesa({
-      descricao: novaDespesa.descricao,
-      valor: Number(novaDespesa.valor),
-      data: novaDespesa.data,
-    });
+    umaVezPorVez("addDespesa", () =>
+      actions.addDespesa({
+        descricao: novaDespesa.descricao,
+        valor: Number(novaDespesa.valor),
+        data: novaDespesa.data,
+      })
+    );
     setNovaDespesa({ descricao: "", valor: "", data: formatDate(new Date()) });
   }
 
