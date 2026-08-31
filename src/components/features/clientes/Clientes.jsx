@@ -87,30 +87,30 @@ export default function Clientes({
     <div className="space-y-6">
       <h2 className="text-xl font-semibold">Clientes</h2>
 
-      <div className="flex gap-4">
+      <div className="flex flex-col lg:flex-row gap-3 lg:gap-4">
         <input
           type="text"
           placeholder="Buscar cliente..."
           value={buscaCliente}
           onChange={(e) => setBuscaCliente(e.target.value)}
-          className="flex-1 px-4 py-2 border rounded-lg"
+          className="flex-1 min-w-0 px-4 py-2 border rounded-lg"
         />
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           <input
             type="text"
             placeholder="Nome"
             value={novoCliente.nome}
             onChange={(e) => setNovoCliente({ ...novoCliente, nome: e.target.value })}
-            className="px-4 py-2 border rounded-lg"
+            className="min-w-0 px-4 py-2 border rounded-lg"
           />
           <input
             type="text"
             placeholder="Telefone"
             value={novoCliente.telefone}
             onChange={(e) => setNovoCliente({ ...novoCliente, telefone: e.target.value })}
-            className="px-4 py-2 border rounded-lg"
+            className="min-w-0 px-4 py-2 border rounded-lg"
           />
-          <Button onClick={addCliente} variant="primary">
+          <Button onClick={addCliente} variant="primary" className="justify-center shrink-0">
             <Plus size={16} /> Adicionar
           </Button>
         </div>
@@ -300,13 +300,13 @@ export default function Clientes({
                       <p className="text-sm text-gray-400 text-center py-2">Nenhum pet cadastrado</p>
                     )}
 
-                    <div className="flex gap-2 pt-1">
+                    <div className="flex flex-col sm:flex-row gap-2 pt-1">
                       <input
                         type="text"
                         placeholder="Nome do pet"
                         value={novoPet.nome}
                         onChange={(e) => setNovoPet({ ...novoPet, nome: e.target.value })}
-                        className="flex-1 px-3 py-2 border rounded-lg text-sm"
+                        className="flex-1 min-w-0 px-3 py-2 border rounded-lg text-sm"
                       />
                       <select
                         value={novoPet.especie}
@@ -322,9 +322,9 @@ export default function Clientes({
                         placeholder="Raça"
                         value={novoPet.raca}
                         onChange={(e) => setNovoPet({ ...novoPet, raca: e.target.value })}
-                        className="px-3 py-2 border rounded-lg text-sm"
+                        className="min-w-0 px-3 py-2 border rounded-lg text-sm"
                       />
-                      <Button onClick={() => handleAddPet(cliente.id)} variant="primary" className="text-xs">
+                      <Button onClick={() => handleAddPet(cliente.id)} variant="primary" className="text-xs shrink-0">
                         <Plus size={14} /> Adicionar pet
                       </Button>
                     </div>
