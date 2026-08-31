@@ -1,13 +1,20 @@
-import { Plus, Trash2, MessageCircle, Edit2, Dog, Phone, User, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Trash2, MessageCircle, Edit2, Dog, Phone, User, ChevronDown, ChevronUp, CalendarClock } from "lucide-react";
 import WhatsAppLink from "../../common/WhatsAppLink";
 import Button from "../../common/Button";
 import { useState } from "react";
+import { formatDataBR, formatDiaMes } from "../../../utils/format";
 
 const PET_VAZIO = { nome: "", especie: "Cachorro", raca: "" };
+
+const EMOJI_ESPECIE = { Cachorro: "🐶", Gato: "🐱", Outro: "🐾" };
+
+const plural = (n, singular, pluralForma) => `${n} ${n === 1 ? singular : pluralForma}`;
 
 export default function Clientes({
   clientes,
   pets,
+  agendamentos,
+  hojeStr,
   buscaCliente,
   setBuscaCliente,
   novoCliente,
@@ -20,6 +27,7 @@ export default function Clientes({
   updatePet,
   atualizarObs,
 }) {
+  const [formAberto, setFormAberto] = useState(false);
   const [editandoId, setEditandoId] = useState(null);
   const [clienteEditando, setClienteEditando] = useState({ nome: "", telefone: "" });
 
@@ -30,9 +38,68 @@ export default function Clientes({
   const [petEditando, setPetEditando] = useState(PET_VAZIO);
   const [petDetalheId, setPetDetalheId] = useState(null);
 
+  // Observações ficam em rascunho local enquanto se digita: gravar a cada tecla
+  // dispara um UPDATE por caractere e faz o campo travar esperando o servidor.
+  const [obsRascunho, setObsRascunho] = useState({});
+  const [obsSalva, setObsSalva] = useState(null);
+
   const clientesFiltrados = clientes.filter((c) =>
     c.nome.toLowerCase().includes(buscaCliente.toLowerCase())
   );
+
+  function textoObs(pet) {
+    return obsRascunho[pet.id] ?? pet.observacoes ?? "";
+  }
+
+  function salvarObs(pet) {
+    const rascunho = obsRascunho[pet.id];
+    setObsRascunho((r) => {
+      const { [pet.id]: _, ...resto } = r;
+      return resto;
+    });
+    if (rascunho === undefined || rascunho === (pet.observacoes ?? "")) return;
+    atualizarObs(pet.id, rascunho);
+    setObsSalva(pet.id);
+    setTimeout(() => setObsSalva((atual) => (atual === pet.id ? null : atual)), 2000);
+  }
+
+  // Os agendamentos já chegam ordenados por data e hora.
+  function proximoDoCliente(clienteId) {
+    const idsPets = new Set(getPetsDoCliente(clienteId).map((p) => p.id));
+    return agendamentos.find(
+      (a) => idsPets.has(a.petId) && a.status === "Agendado" && a.data >= hojeStr
+    );
+  }
+
+  function ultimaVisita(petId) {
+    for (let i = agendamentos.length - 1; i >= 0; i--) {
+      const a = agendamentos[i];
+      if (a.petId === petId && a.status === "Concluído") return a;
+    }
+    return null;
+  }
+
+  function confirmarExclusaoCliente(cliente) {
+    const petsDoCliente = getPetsDoCliente(cliente.id);
+    const idsPets = new Set(petsDoCliente.map((p) => p.id));
+    const qtdAgendamentos = agendamentos.filter((a) => idsPets.has(a.petId)).length;
+
+    const perdas = [
+      petsDoCliente.length && plural(petsDoCliente.length, "pet", "pets"),
+      qtdAgendamentos && plural(qtdAgendamentos, "agendamento", "agendamentos"),
+    ].filter(Boolean);
+
+    const detalhe = perdas.length ? ` Isso também apaga ${perdas.join(" e ")}.` : "";
+    if (!window.confirm(`Excluir ${cliente.nome}?${detalhe} Não dá para desfazer.`)) return;
+    delCliente(cliente.id);
+  }
+
+  function confirmarExclusaoPet(pet) {
+    const qtd = agendamentos.filter((a) => a.petId === pet.id).length;
+    const detalhe = qtd ? ` Isso também apaga ${plural(qtd, "agendamento", "agendamentos")}.` : "";
+    if (!window.confirm(`Excluir ${pet.nome}?${detalhe} Não dá para desfazer.`)) return;
+    delPet(pet.id);
+  }
 
   function iniciarEdicao(cliente) {
     setEditandoId(cliente.id);
@@ -87,33 +154,47 @@ export default function Clientes({
     <div className="space-y-6">
       <h2 className="text-xl font-semibold">Clientes</h2>
 
-      <div className="flex flex-col lg:flex-row gap-3 lg:gap-4">
-        <input
-          type="text"
-          placeholder="Buscar cliente..."
-          value={buscaCliente}
-          onChange={(e) => setBuscaCliente(e.target.value)}
-          className="flex-1 min-w-0 px-4 py-2 border rounded-lg"
-        />
-        <div className="flex flex-col sm:flex-row gap-2">
+      {/* Buscar é o que mais se faz aqui; o cadastro fica atrás de um botão
+          para não empurrar a lista para fora da tela no celular. */}
+      <div className="space-y-3">
+        <div className="flex gap-2">
           <input
             type="text"
-            placeholder="Nome"
-            value={novoCliente.nome}
-            onChange={(e) => setNovoCliente({ ...novoCliente, nome: e.target.value })}
-            className="min-w-0 px-4 py-2 border rounded-lg"
+            placeholder="Buscar cliente..."
+            value={buscaCliente}
+            onChange={(e) => setBuscaCliente(e.target.value)}
+            className="flex-1 min-w-0 px-4 py-2 border rounded-lg"
           />
-          <input
-            type="text"
-            placeholder="Telefone"
-            value={novoCliente.telefone}
-            onChange={(e) => setNovoCliente({ ...novoCliente, telefone: e.target.value })}
-            className="min-w-0 px-4 py-2 border rounded-lg"
-          />
-          <Button onClick={addCliente} variant="primary" className="justify-center shrink-0">
-            <Plus size={16} /> Adicionar
+          <Button
+            onClick={() => setFormAberto((v) => !v)}
+            variant={formAberto ? "secondary" : "primary"}
+            className="shrink-0"
+          >
+            <Plus size={16} /> <span className="hidden sm:inline">Novo cliente</span>
           </Button>
         </div>
+
+        {formAberto && (
+          <div className="flex flex-col sm:flex-row gap-2 p-3 bg-gray-50 border rounded-lg">
+            <input
+              type="text"
+              placeholder="Nome"
+              value={novoCliente.nome}
+              onChange={(e) => setNovoCliente({ ...novoCliente, nome: e.target.value })}
+              className="flex-1 min-w-0 px-4 py-2 border rounded-lg"
+            />
+            <input
+              type="text"
+              placeholder="Telefone"
+              value={novoCliente.telefone}
+              onChange={(e) => setNovoCliente({ ...novoCliente, telefone: e.target.value })}
+              className="flex-1 min-w-0 px-4 py-2 border rounded-lg"
+            />
+            <Button onClick={addCliente} variant="primary" className="shrink-0">
+              <Plus size={16} /> Adicionar
+            </Button>
+          </div>
+        )}
       </div>
 
       <div className="space-y-3">
@@ -121,14 +202,15 @@ export default function Clientes({
           const petsDoCliente = getPetsDoCliente(cliente.id);
           const estaEditando = editandoId === cliente.id;
           const estaExpandido = expandidoId === cliente.id;
+          const proximo = proximoDoCliente(cliente.id);
 
           return (
             <div key={cliente.id} className="border rounded-lg overflow-hidden">
               <div className="p-4 bg-white">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div className="flex-1 min-w-0">
                     {estaEditando ? (
-                      <div className="flex gap-2">
+                      <div className="flex flex-col sm:flex-row gap-2">
                         <input
                           type="text"
                           value={clienteEditando.nome}
@@ -154,11 +236,22 @@ export default function Clientes({
                           <Phone size={14} className="text-gray-400" />
                           <p className="text-sm text-gray-500">{cliente.telefone}</p>
                         </div>
+                        {proximo && (
+                          <div className="flex items-center gap-2 mt-1">
+                            <CalendarClock size={14} className="text-blue-500 shrink-0" />
+                            <p className="text-sm text-blue-700">
+                              {proximo.data === hojeStr ? "Hoje" : formatDiaMes(proximo.data)} às {proximo.hora}
+                              <span className="text-gray-500">
+                                {" "}· {pets.find((p) => p.id === proximo.petId)?.nome} · {proximo.servico}
+                              </span>
+                            </p>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
 
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 shrink-0">
                     {estaEditando ? (
                       <>
                         <Button onClick={salvarEdicao} variant="success" className="text-xs">
@@ -174,7 +267,7 @@ export default function Clientes({
                         <Button onClick={() => iniciarEdicao(cliente)} variant="secondary" className="text-xs">
                           <Edit2 size={14} />
                         </Button>
-                        <Button onClick={() => delCliente(cliente.id)} variant="danger" className="text-xs">
+                        <Button onClick={() => confirmarExclusaoCliente(cliente)} variant="danger" className="text-xs">
                           <Trash2 size={14} />
                         </Button>
                       </>
@@ -200,7 +293,7 @@ export default function Clientes({
                   <div className="flex flex-wrap gap-2 mt-2">
                     {petsDoCliente.map((pet) => (
                       <div key={pet.id} className="px-3 py-1 bg-white border rounded-full text-sm">
-                        🐶 {pet.nome} ({pet.especie})
+                        {EMOJI_ESPECIE[pet.especie] || EMOJI_ESPECIE.Outro} {pet.nome} ({pet.especie})
                       </div>
                     ))}
                   </div>
@@ -210,11 +303,13 @@ export default function Clientes({
                   <div className="mt-3 space-y-3">
                     {petsDoCliente.map((pet) => {
                       const estaEditandoPet = editandoPetId === pet.id;
+                      const visita = ultimaVisita(pet.id);
+                      const temObs = Boolean((pet.observacoes || "").trim());
                       return (
                         <div key={pet.id} className="border rounded-lg bg-white overflow-hidden">
-                          <div className="p-3 flex items-center justify-between">
+                          <div className="p-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                             {estaEditandoPet ? (
-                              <div className="grid grid-cols-3 gap-2 flex-1 mr-2">
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 flex-1 sm:mr-2">
                                 <input
                                   type="text"
                                   value={petEditando.nome}
@@ -248,6 +343,9 @@ export default function Clientes({
                                 <p className="text-xs text-gray-500 ml-6">
                                   {pet.especie} - {pet.raca}
                                 </p>
+                                <p className="text-xs text-gray-400 ml-6">
+                                  {visita ? `Última visita: ${formatDataBR(visita.data)} · ${visita.servico}` : "Ainda não foi atendido"}
+                                </p>
                               </div>
                             )}
 
@@ -265,15 +363,16 @@ export default function Clientes({
                                 <>
                                   <Button
                                     onClick={() => setPetDetalheId(petDetalheId === pet.id ? null : pet.id)}
-                                    variant="secondary"
+                                    variant={temObs ? "warning" : "secondary"}
                                     className="text-xs"
+                                    title={temObs ? "Este pet tem observações" : "Adicionar observações"}
                                   >
-                                    {petDetalheId === pet.id ? "Ocultar" : "Obs"}
+                                    {petDetalheId === pet.id ? "Ocultar" : temObs ? "Obs •" : "Obs"}
                                   </Button>
                                   <Button onClick={() => iniciarEdicaoPet(pet)} variant="secondary" className="text-xs">
                                     <Edit2 size={14} />
                                   </Button>
-                                  <Button onClick={() => delPet(pet.id)} variant="danger" className="text-xs">
+                                  <Button onClick={() => confirmarExclusaoPet(pet)} variant="danger" className="text-xs">
                                     <Trash2 size={14} />
                                   </Button>
                                 </>
@@ -284,12 +383,16 @@ export default function Clientes({
                           {petDetalheId === pet.id && (
                             <div className="px-3 pb-3 border-t bg-gray-50">
                               <textarea
-                                value={pet.observacoes}
-                                onChange={(e) => atualizarObs(pet.id, e.target.value)}
-                                placeholder="Observações..."
+                                value={textoObs(pet)}
+                                onChange={(e) => setObsRascunho((r) => ({ ...r, [pet.id]: e.target.value }))}
+                                onBlur={() => salvarObs(pet)}
+                                placeholder="Ex.: morde ao secar, alérgico a shampoo comum..."
                                 className="w-full mt-2 px-3 py-2 border rounded-lg text-sm"
                                 rows={2}
                               />
+                              <p className="text-xs text-gray-400">
+                                {obsSalva === pet.id ? "Observações salvas" : "Salva ao sair do campo"}
+                              </p>
                             </div>
                           )}
                         </div>

@@ -10,6 +10,18 @@ export function formatBRL(valor) {
   });
 }
 
+// "2026-09-03" -> "03/09/2026"
+export function formatDataBR(dataStr) {
+  const [ano, mes, dia] = (dataStr || "").split("-");
+  return dia ? `${dia}/${mes}/${ano}` : "";
+}
+
+// "2026-09-03" -> "03/09" (dia e mês bastam para datas próximas)
+export function formatDiaMes(dataStr) {
+  const [, mes, dia] = (dataStr || "").split("-");
+  return dia ? `${dia}/${mes}` : "";
+}
+
 // "2026-08" -> "agosto de 2026"
 export function nomeDoMes(mesRef) {
   const [ano, mes] = (mesRef || "").split("-").map(Number);

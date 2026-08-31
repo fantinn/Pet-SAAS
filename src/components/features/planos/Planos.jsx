@@ -1,6 +1,6 @@
 import { Trash2 } from "lucide-react";
 import Button from "../../common/Button";
-import { formatBRL } from "../../../utils/format";
+import { formatBRL, formatDataBR } from "../../../utils/format";
 
 export default function Planos({ 
   clientes, 
@@ -10,8 +10,14 @@ export default function Planos({
   setClienteParaAssinar, 
   assinarPlano, 
   cancelarAssinatura,
-  nomeCliente 
+  nomeCliente
 }) {
+  function confirmarCancelamento(assinatura, plano) {
+    const cliente = nomeCliente(assinatura.clienteId);
+    if (!window.confirm(`Cancelar a assinatura ${plano?.nome ? `"${plano.nome}" ` : ""}de ${cliente}? Ela deixa de contar no faturamento dos próximos meses.`)) return;
+    cancelarAssinatura(assinatura.id);
+  }
+
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold">Planos e Assinaturas</h2>
@@ -59,10 +65,10 @@ export default function Planos({
                     <p className="font-medium">{nomeCliente(assinatura.clienteId)}</p>
                     <p className="text-sm text-gray-500">{plano?.nome} · {formatBRL(plano?.preco)}/mês</p>
                     <p className="text-sm text-gray-500">
-                      Desde {(assinatura.dataInicio || "").split("-").reverse().join("/")}
+                      Desde {formatDataBR(assinatura.dataInicio)}
                     </p>
                   </div>
-                  <Button onClick={() => cancelarAssinatura(assinatura.id)} variant="danger">
+                  <Button onClick={() => confirmarCancelamento(assinatura, plano)} variant="danger">
                     <Trash2 size={16} /> Cancelar
                   </Button>
                 </div>

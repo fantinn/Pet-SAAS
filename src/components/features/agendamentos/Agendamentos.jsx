@@ -2,7 +2,7 @@ import { Plus, Trash2, ChevronLeft, ChevronRight, Clock, DollarSign } from "luci
 import Button from "../../common/Button";
 import StatusBadge from "../../common/StatusBadge";
 import { calcularHorariosDisponiveis } from "../../../utils/availability.js";
-import { formatBRL } from "../../../utils/format";
+import { formatBRL, formatDataBR } from "../../../utils/format";
 
 export default function Agendamentos({ 
   pets, 
@@ -36,6 +36,13 @@ export default function Agendamentos({
     if (!servico) return [];
     return calcularHorariosDisponiveis(novoAg.data, agendamentos, servico.duracao, servicosPadrao, configuracoes);
   };
+
+  function confirmarExclusao(ag) {
+    const pet = petInfo(ag.petId);
+    const alvo = `${pet?.nome ? `${pet.nome} - ` : ""}${ag.servico} às ${ag.hora}`;
+    if (!window.confirm(`Excluir o agendamento de ${alvo}? Não dá para desfazer.`)) return;
+    delAg(ag.id);
+  }
 
   const handlePetChange = (e) => {
     setNovoAg({ ...novoAg, petId: e.target.value });
@@ -85,8 +92,9 @@ export default function Agendamentos({
                   className="w-full px-4 py-2 border rounded-lg"
                 >
                   <option value="">Selecione o pet</option>
+                  {/* O dono no rótulo evita escolher o "Thor" errado quando há homônimos. */}
                   {pets.map((p) => (
-                    <option key={p.id} value={p.id}>{p.nome}</option>
+                    <option key={p.id} value={p.id}>{p.nome} · {nomeCliente(p.clienteId)}</option>
                   ))}
                 </select>
                 {petSelected && (
@@ -244,30 +252,37 @@ export default function Agendamentos({
       </div>
 
       <div>
-        <h3 className="font-semibold mb-3">Agendamentos do Dia: {diaSelecionado}</h3>
+        <h3 className="font-semibold mb-3">Agendamentos de {formatDataBR(diaSelecionado)}</h3>
         {agendamentosDoDia.length === 0 ? (
           <p className="text-gray-500">Nenhum agendamento para este dia</p>
         ) : (
           <div className="space-y-2">
-            {agendamentosDoDia.map((ag) => (
-              <div key={ag.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                <div>
-                  <p className="font-medium">{petInfo(ag.petId)?.nome} - {ag.servico}</p>
-                  <p className="text-sm text-gray-500">{ag.hora} · {formatBRL(ag.valor)}</p>
+            {agendamentosDoDia.map((ag) => {
+              const pet = petInfo(ag.petId);
+              return (
+                <div key={ag.id} className="flex items-center justify-between gap-3 p-4 bg-gray-50 rounded-lg">
+                  <div className="min-w-0">
+                    <p className="font-medium">{pet?.nome || "Pet removido"} - {ag.servico}</p>
+                    <p className="text-sm text-gray-500 truncate">
+                      {ag.hora} · {formatBRL(ag.valor)}
+                      {pet && ` · ${nomeCliente(pet.clienteId)}`}
+                    </p>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <button
+                      onClick={() => cicloStatus(ag.id)}
+                      className="px-3 py-2 rounded-lg"
+                      title="Alterar status"
+                    >
+                      <StatusBadge status={ag.status} colors={statusCor} />
+                    </button>
+                    <Button onClick={() => confirmarExclusao(ag)} variant="danger">
+                      <Trash2 size={16} />
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => cicloStatus(ag.id)}
-                    className="px-3 py-2 rounded-lg"
-                  >
-                    <StatusBadge status={ag.status} colors={statusCor} />
-                  </button>
-                  <Button onClick={() => delAg(ag.id)} variant="danger">
-                    <Trash2 size={16} />
-                  </Button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

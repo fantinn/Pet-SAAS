@@ -210,6 +210,7 @@ export default function PetshopSaaS() {
           <Settings
             servicos={state.servicos}
             planos={state.planos}
+            assinaturas={state.assinaturas}
             configuracoes={state.configuracoes}
             onAddServico={actions.addServico}
             onUpdateServico={actions.updateServico}
@@ -226,6 +227,8 @@ export default function PetshopSaaS() {
           <Clientes
             clientes={state.clientes}
             pets={state.pets}
+            agendamentos={state.agendamentos}
+            hojeStr={derived.hojeStr}
             buscaCliente={buscaCliente}
             setBuscaCliente={setBuscaCliente}
             novoCliente={novoCliente}

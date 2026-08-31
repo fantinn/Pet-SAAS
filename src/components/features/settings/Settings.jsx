@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { Plus, Trash2, Clock, DollarSign, Settings as SettingsIcon, Database } from "lucide-react";
 import Button from "../../common/Button";
+import { formatBRL } from "../../../utils/format";
 
 export default function Settings({
   servicos,
   planos,
+  assinaturas,
   configuracoes,
   onAddServico,
   onUpdateServico,
@@ -78,6 +80,20 @@ export default function Settings({
     });
     setHorarioSalvo(true);
     setTimeout(() => setHorarioSalvo(false), 2500);
+  }
+
+  function confirmarExclusaoServico(servico) {
+    if (!window.confirm(`Excluir o serviço "${servico.nome}"? Ele deixa de aparecer ao agendar. O histórico já registrado é mantido.`)) return;
+    onDeleteServico(servico.id);
+  }
+
+  function confirmarExclusaoPlano(plano) {
+    const ativas = assinaturas.filter((a) => a.planoId === plano.id).length;
+    const detalhe = ativas
+      ? ` Isso cancela ${ativas} assinatura${ativas === 1 ? "" : "s"} e tira ${formatBRL(ativas * plano.preco)}/mês do faturamento.`
+      : "";
+    if (!window.confirm(`Excluir o plano "${plano.nome}"?${detalhe} Não dá para desfazer.`)) return;
+    onDeletePlano(plano.id);
   }
 
   function handleLoadSeedData() {
@@ -156,7 +172,7 @@ export default function Settings({
         
         <div className="mb-6 p-4 bg-white rounded-lg border">
           <h4 className="font-medium mb-3">Adicionar Novo Serviço</h4>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <input
               type="text"
               placeholder="Nome do serviço"
@@ -186,8 +202,8 @@ export default function Settings({
 
         <div className="space-y-3">
           {servicos.map((servico) => (
-            <div key={servico.id} className="flex items-center gap-3 p-4 bg-white rounded-lg border">
-              <div className="flex-1">
+            <div key={servico.id} className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 bg-white rounded-lg border">
+              <div className="flex-1 min-w-0">
                 <input
                   type="text"
                   value={valorCampo("servico", servico, "nome")}
@@ -196,30 +212,32 @@ export default function Settings({
                   className="w-full px-3 py-2 border rounded-lg font-medium"
                 />
               </div>
-              <div className="flex items-center gap-2">
-                <DollarSign size={16} className="text-green-600" />
-                <input
-                  type="number"
-                  value={valorCampo("servico", servico, "preco")}
-                  onChange={(e) => editarCampo("servico", servico, "preco", e.target.value)}
-                  onBlur={() => confirmarCampo("servico", servico, "preco", (v) => handleUpdateServico(servico.id, "preco", Number(v) || 0))}
-                  className="w-20 px-3 py-2 border rounded-lg"
-                />
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <DollarSign size={16} className="text-green-600 shrink-0" />
+                  <input
+                    type="number"
+                    value={valorCampo("servico", servico, "preco")}
+                    onChange={(e) => editarCampo("servico", servico, "preco", e.target.value)}
+                    onBlur={() => confirmarCampo("servico", servico, "preco", (v) => handleUpdateServico(servico.id, "preco", Number(v) || 0))}
+                    className="w-20 px-3 py-2 border rounded-lg"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Clock size={16} className="text-blue-600 shrink-0" />
+                  <input
+                    type="number"
+                    value={valorCampo("servico", servico, "duracao")}
+                    onChange={(e) => editarCampo("servico", servico, "duracao", e.target.value)}
+                    onBlur={() => confirmarCampo("servico", servico, "duracao", (v) => handleUpdateServico(servico.id, "duracao", Number(v) || 30))}
+                    className="w-20 px-3 py-2 border rounded-lg"
+                  />
+                  <span className="text-sm text-gray-500">min</span>
+                </div>
+                <Button onClick={() => confirmarExclusaoServico(servico)} variant="danger" className="ml-auto sm:ml-0">
+                  <Trash2 size={16} />
+                </Button>
               </div>
-              <div className="flex items-center gap-2">
-                <Clock size={16} className="text-blue-600" />
-                <input
-                  type="number"
-                  value={valorCampo("servico", servico, "duracao")}
-                  onChange={(e) => editarCampo("servico", servico, "duracao", e.target.value)}
-                  onBlur={() => confirmarCampo("servico", servico, "duracao", (v) => handleUpdateServico(servico.id, "duracao", Number(v) || 30))}
-                  className="w-20 px-3 py-2 border rounded-lg"
-                />
-                <span className="text-sm text-gray-500">min</span>
-              </div>
-              <Button onClick={() => onDeleteServico(servico.id)} variant="danger">
-                <Trash2 size={16} />
-              </Button>
             </div>
           ))}
         </div>
@@ -290,7 +308,7 @@ export default function Settings({
                   />
                   <span className="text-sm text-gray-500">/mês</span>
                 </div>
-                <Button onClick={() => onDeletePlano(plano.id)} variant="danger">
+                <Button onClick={() => confirmarExclusaoPlano(plano)} variant="danger">
                   <Trash2 size={16} />
                 </Button>
               </div>

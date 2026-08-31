@@ -1,6 +1,6 @@
 import { Plus, Trash2, ChevronLeft, ChevronRight, Scissors, ShoppingCart, Tag } from "lucide-react";
 import Button from "../../common/Button";
-import { formatBRL, nomeDoMes } from "../../../utils/format";
+import { formatBRL, formatDataBR, nomeDoMes } from "../../../utils/format";
 
 export default function Financeiro({
   novaDespesa,
@@ -15,6 +15,11 @@ export default function Financeiro({
   ehMesAtual,
 }) {
   const { totalEntradas, totalDespesas, saldo, totalServicos, totalVendas, totalPlanos, despesasDoMes, qtdServicos, ticketMedio } = resumo;
+
+  function confirmarExclusao(despesa) {
+    if (!window.confirm(`Excluir a despesa "${despesa.descricao}" de ${formatBRL(despesa.valor)}? Não dá para desfazer.`)) return;
+    delDespesa(despesa.id);
+  }
 
   const composicao = [
     { label: "Serviços", valor: totalServicos, icone: Scissors, cor: "text-blue-600" },
@@ -129,10 +134,10 @@ export default function Financeiro({
                 <div>
                   <p className="font-medium">{despesa.descricao}</p>
                   <p className="text-sm text-gray-500">
-                    {despesa.data.split("-").reverse().join("/")} · {formatBRL(despesa.valor)}
+                    {formatDataBR(despesa.data)} · {formatBRL(despesa.valor)}
                   </p>
                 </div>
-                <Button onClick={() => delDespesa(despesa.id)} variant="danger">
+                <Button onClick={() => confirmarExclusao(despesa)} variant="danger">
                   <Trash2 size={16} />
                 </Button>
               </div>

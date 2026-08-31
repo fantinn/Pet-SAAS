@@ -1,6 +1,6 @@
 import { Plus, Trash2 } from "lucide-react";
 import Button from "../../common/Button";
-import { formatBRL } from "../../../utils/format";
+import { formatBRL, formatDataBR } from "../../../utils/format";
 
 export default function Vendas({
   clientes,
@@ -14,6 +14,12 @@ export default function Vendas({
   totalVendasMes,
   nomeCliente
 }) {
+  function confirmarExclusao(venda) {
+    const total = formatBRL(venda.qtd * venda.valor);
+    if (!window.confirm(`Excluir a venda "${venda.item}" de ${total}? Não dá para desfazer.`)) return;
+    delVenda(venda.id);
+  }
+
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold">Vendas</h2>
@@ -91,20 +97,25 @@ export default function Vendas({
         </div>
 
         <div>
-          <h3 className="font-semibold mb-3">Vendas do mês: {formatBRL(totalVendasMes)}</h3>
+          <div className="flex items-baseline justify-between mb-3 gap-3">
+            <h3 className="font-semibold">Últimas vendas</h3>
+            <p className="text-sm text-gray-500">
+              Mês: <span className="font-medium text-gray-700">{formatBRL(totalVendasMes)}</span>
+            </p>
+          </div>
           <div className="space-y-2 max-h-96 overflow-y-auto">
             {vendas.map((venda) => (
-              <div key={venda.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                <div>
+              <div key={venda.id} className="flex items-center justify-between gap-3 p-4 bg-gray-50 rounded-lg">
+                <div className="min-w-0">
                   <p className="font-medium">{venda.item}</p>
                   <p className="text-sm text-gray-500">
                     {venda.qtd}x {formatBRL(venda.valor)} = {formatBRL(venda.qtd * venda.valor)}
                   </p>
                   <p className="text-sm text-gray-500">
-                    Cliente: {nomeCliente(venda.clienteId)} | {venda.formaPagamento}
+                    {formatDataBR(venda.data)} · {nomeCliente(venda.clienteId)} · {venda.formaPagamento}
                   </p>
                 </div>
-                <Button onClick={() => delVenda(venda.id)} variant="danger">
+                <Button onClick={() => confirmarExclusao(venda)} variant="danger">
                   <Trash2 size={16} />
                 </Button>
               </div>
