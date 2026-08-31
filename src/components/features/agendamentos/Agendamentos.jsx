@@ -2,6 +2,7 @@ import { Plus, Trash2, ChevronLeft, ChevronRight, Clock, DollarSign } from "luci
 import Button from "../../common/Button";
 import StatusBadge from "../../common/StatusBadge";
 import { calcularHorariosDisponiveis } from "../../../utils/availability.js";
+import { formatBRL } from "../../../utils/format";
 
 export default function Agendamentos({ 
   pets, 
@@ -21,7 +22,8 @@ export default function Agendamentos({
   nomeCliente,
   contaNoDia,
   statusCor,
-  diasDoMes
+  diasDoMes,
+  configuracoes
 }) {
   const agendamentosDoDia = agendamentos.filter((a) => a.data === diaSelecionado);
   
@@ -32,7 +34,7 @@ export default function Agendamentos({
     if (!novoAg.data || !novoAg.servico) return [];
     const servico = getServicoSelected();
     if (!servico) return [];
-    return calcularHorariosDisponiveis(novoAg.data, agendamentos, servico.duracao, servicosPadrao);
+    return calcularHorariosDisponiveis(novoAg.data, agendamentos, servico.duracao, servicosPadrao, configuracoes);
   };
 
   const handlePetChange = (e) => {
@@ -112,7 +114,7 @@ export default function Agendamentos({
                   <div className="mt-2 p-2 bg-green-50 rounded text-sm space-y-1">
                     <div className="flex items-center gap-2">
                       <DollarSign size={16} className="text-green-600" />
-                      <span className="font-medium">Preço:</span> R$ {servicoSelected.preco}
+                      <span className="font-medium">Preço:</span> {formatBRL(servicoSelected.preco)}
                     </div>
                     <div className="flex items-center gap-2">
                       <Clock size={16} className="text-green-600" />
@@ -177,7 +179,7 @@ export default function Agendamentos({
                 <div className="p-3 bg-gray-50 rounded-lg">
                   <div className="flex justify-between items-center">
                     <span className="font-medium">Valor Total:</span>
-                    <span className="text-lg font-bold text-green-600">R$ {servicoSelected.preco.toFixed(2)}</span>
+                    <span className="text-lg font-bold text-green-600">{formatBRL(servicoSelected.preco)}</span>
                   </div>
                 </div>
               )}
@@ -251,7 +253,7 @@ export default function Agendamentos({
               <div key={ag.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                 <div>
                   <p className="font-medium">{petInfo(ag.petId)?.nome} - {ag.servico}</p>
-                  <p className="text-sm text-gray-500">{ag.hora} - R$ {ag.valor.toFixed(2)}</p>
+                  <p className="text-sm text-gray-500">{ag.hora} · {formatBRL(ag.valor)}</p>
                 </div>
                 <div className="flex gap-2">
                   <button

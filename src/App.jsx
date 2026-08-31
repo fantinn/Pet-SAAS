@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useApp } from "./context/AppProvider";
 import { FORMAS_PAGAMENTO, STATUS_COR } from "./data/constants";
-import { formatDate } from "./utils/format";
+import { formatDate, deslocarMes } from "./utils/format";
 
 // Layout components
 import Sidebar from "./components/layout/Sidebar";
@@ -49,6 +49,13 @@ export default function PetshopSaaS() {
   const { mesAtual, diaSelecionado, setDiaSelecionado, diasDoMes, prevMes, nextMes } = useCalendar();
   const [clienteParaAssinar, setClienteParaAssinar] = useState("");
   const [novaDespesa, setNovaDespesa] = useState({ descricao: "", valor: "", data: formatDate(new Date()) });
+
+  // Mês em foco no Financeiro (começa no mês corrente)
+  const [mesFinanceiro, setMesFinanceiro] = useState(derived.mesAtualRef);
+  const resumoFinanceiro = useMemo(
+    () => derived.resumoFinanceiro(mesFinanceiro),
+    [derived, mesFinanceiro]
+  );
 
   // Handlers
   function addCliente() {
@@ -130,11 +137,10 @@ export default function PetshopSaaS() {
     actions.deleteDespesa(id);
   }
 
-  function handleAgendamentoClick(agendamento, cliente) {
-    if (cliente) {
-      setTab("clientes");
-      setBuscaCliente(cliente.nome);
-    }
+  function abrirCliente(cliente) {
+    if (!cliente) return;
+    setTab("clientes");
+    setBuscaCliente(cliente.nome);
   }
 
   // Derived values for components
@@ -156,14 +162,17 @@ export default function PetshopSaaS() {
         ) : (
           <>
         {tab === "dashboard" && (
-          <Dashboard 
+          <Dashboard
             clientes={state.clientes}
             pets={state.pets}
-            agendamentos={state.agendamentos}
-            totalEntradas={derived.totalEntradas}
+            agendamentosHoje={derived.agendamentosHoje}
+            previstoHoje={derived.previstoHoje}
+            resumoMes={derived.resumoMes}
             statusCor={STATUS_COR}
             petInfo={derived.petInfo}
-            onAgendamentoClick={handleAgendamentoClick}
+            nomeCliente={derived.nomeCliente}
+            onCicloStatus={cicloStatus}
+            onAbrirCliente={abrirCliente}
           />
         )}
 
@@ -221,6 +230,7 @@ export default function PetshopSaaS() {
             contaNoDia={contaNoDia}
             statusCor={STATUS_COR}
             diasDoMes={diasDoMes}
+            configuracoes={state.configuracoes}
           />
         )}
 
@@ -234,7 +244,7 @@ export default function PetshopSaaS() {
             setNovaVenda={setNovaVenda}
             addVenda={addVenda}
             delVenda={delVenda}
-            totalVendas={derived.totalVendas}
+            totalVendasMes={derived.resumoMes.totalVendas}
             nomeCliente={derived.nomeCliente}
           />
         )}
@@ -254,16 +264,16 @@ export default function PetshopSaaS() {
 
         {tab === "financeiro" && (
           <Financeiro
-            despesas={state.despesas}
             novaDespesa={novaDespesa}
             setNovaDespesa={setNovaDespesa}
             addDespesa={addDespesa}
             delDespesa={delDespesa}
-            totalEntradas={derived.totalEntradas}
-            totalDespesas={derived.totalDespesas}
-            totalVendas={derived.totalVendas}
-            totalPlanos={derived.totalPlanos}
-            saldo={derived.saldo}
+            resumo={resumoFinanceiro}
+            mesRef={mesFinanceiro}
+            onMesAnterior={() => setMesFinanceiro(deslocarMes(mesFinanceiro, -1))}
+            onProximoMes={() => setMesFinanceiro(deslocarMes(mesFinanceiro, 1))}
+            onVoltarMesAtual={() => setMesFinanceiro(derived.mesAtualRef)}
+            ehMesAtual={mesFinanceiro >= derived.mesAtualRef}
           />
         )}
           </>

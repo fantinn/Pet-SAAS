@@ -1,5 +1,6 @@
 import { Trash2 } from "lucide-react";
 import Button from "../../common/Button";
+import { formatBRL } from "../../../utils/format";
 
 export default function Planos({ 
   clientes, 
@@ -19,7 +20,7 @@ export default function Planos({
         {planos.map((plano) => (
           <div key={plano.id} className="p-4 bg-gray-50 rounded-lg">
             <h3 className="font-semibold text-lg">{plano.nome}</h3>
-            <p className="text-2xl font-bold text-blue-600">R$ {plano.preco}/mês</p>
+            <p className="text-2xl font-bold text-blue-600">{formatBRL(plano.preco)}<span className="text-sm font-normal text-gray-500">/mês</span></p>
             <p className="text-sm text-gray-600 mt-2">{plano.descricao}</p>
             <div className="mt-4 space-y-2">
               <select
@@ -56,8 +57,10 @@ export default function Planos({
                 <div key={assinatura.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                   <div>
                     <p className="font-medium">{nomeCliente(assinatura.clienteId)}</p>
-                    <p className="text-sm text-gray-500">{plano?.nome} - R$ {plano?.preco}/mês</p>
-                    <p className="text-sm text-gray-500">Desde: {assinatura.dataInicio}</p>
+                    <p className="text-sm text-gray-500">{plano?.nome} · {formatBRL(plano?.preco)}/mês</p>
+                    <p className="text-sm text-gray-500">
+                      Desde {(assinatura.dataInicio || "").split("-").reverse().join("/")}
+                    </p>
                   </div>
                   <Button onClick={() => cancelarAssinatura(assinatura.id)} variant="danger">
                     <Trash2 size={16} /> Cancelar

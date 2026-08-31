@@ -47,13 +47,13 @@ export default function Sidebar({ tab, setTab }) {
   const inicial = (user?.email || "?").charAt(0).toUpperCase();
 
   return (
-    <aside 
-      className={`bg-white border-r transition-all duration-300 ${
+    <aside
+      className={`bg-white border-r transition-all duration-300 flex flex-col h-screen sticky top-0 shrink-0 ${
         isCollapsed ? "w-16" : "w-64"
       }`}
     >
       {/* Header */}
-      <div className="p-4 border-b flex items-center justify-between">
+      <div className="p-4 border-b flex items-center justify-between shrink-0">
         {!isCollapsed && (
           <h1 className="text-lg font-semibold">🐾 Petshop SaaS</h1>
         )}
@@ -67,7 +67,7 @@ export default function Sidebar({ tab, setTab }) {
       </div>
 
       {/* Menu Items */}
-      <nav className="p-4 space-y-6">
+      <nav className="p-4 space-y-6 flex-1 overflow-y-auto">
         {MENU_ITEMS.map((section) => (
           <div key={section.category}>
             {!isCollapsed && (
@@ -110,7 +110,7 @@ export default function Sidebar({ tab, setTab }) {
       </nav>
 
       {/* Footer */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 border-t bg-white">
+      <div className="p-4 border-t bg-white shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-semibold shrink-0">
             {inicial}

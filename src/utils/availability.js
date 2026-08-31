@@ -1,7 +1,6 @@
-// Configuração de horário de funcionamento (pode ser dinâmico no futuro)
-const HORARIO_ABERTURA = 8; // 8:00
-const HORARIO_FECHAMENTO = 18; // 18:00
 const INTERVALO_MINUTOS = 30; // Intervalo de 30 minutos
+const ABERTURA_PADRAO = 8;
+const FECHAMENTO_PADRAO = 18;
 
 /**
  * Calcula horários disponíveis para agendamento
@@ -9,27 +8,33 @@ const INTERVALO_MINUTOS = 30; // Intervalo de 30 minutos
  * @param {Array} agendamentos - Lista de agendamentos existentes
  * @param {number} duracaoServico - Duração do serviço em minutos
  * @param {Array} servicos - Lista de serviços para buscar duração
+ * @param {Object} configuracoes - Horário de funcionamento do petshop
  * @returns {Array} - Lista de horários disponíveis no formato HH:MM
  */
-export function calcularHorariosDisponiveis(data, agendamentos, duracaoServico, servicos) {
+export function calcularHorariosDisponiveis(data, agendamentos, duracaoServico, servicos, configuracoes = {}) {
+  const abertura = configuracoes.horarioAbertura ?? ABERTURA_PADRAO;
+  const fechamento = configuracoes.horarioFechamento ?? FECHAMENTO_PADRAO;
+
   // Filtra agendamentos do dia
   const agendamentosDoDia = agendamentos.filter(a => a.data === data && a.status !== "Cancelado");
-  
-  // Gera todos os horários possíveis do dia
+
+  // Gera todos os horários possíveis do dia, respeitando o horário de funcionamento
   const horariosPossiveis = [];
-  for (let hora = HORARIO_ABERTURA; hora < HORARIO_FECHAMENTO; hora++) {
+  for (let hora = abertura; hora < fechamento; hora++) {
     for (let min = 0; min < 60; min += INTERVALO_MINUTOS) {
       const horario = `${String(hora).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
       horariosPossiveis.push(horario);
     }
   }
-  
-  // Filtra horários disponíveis
-  const horariosDisponiveis = horariosPossiveis.filter(horario => {
+
+  // Um serviço não pode invadir o horário de fechamento
+  const limiteFim = fechamento * 60;
+
+  return horariosPossiveis.filter(horario => {
+    const [h, m] = horario.split(':').map(Number);
+    if (h * 60 + m + duracaoServico > limiteFim) return false;
     return !temConflito(horario, duracaoServico, agendamentosDoDia, servicos);
   });
-  
-  return horariosDisponiveis;
 }
 
 /**

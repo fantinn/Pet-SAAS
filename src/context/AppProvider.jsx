@@ -39,7 +39,7 @@ const mapServico = (r) => ({ id: r.id, nome: r.nome, preco: Number(r.preco), dur
 const mapPlano = (r) => ({ id: r.id, slug: r.slug, nome: r.nome, descricao: r.descricao, preco: Number(r.preco) });
 const mapAssinatura = (r) => ({ id: r.id, clienteId: r.cliente_id, planoId: r.plano_id, dataInicio: r.data_inicio });
 const mapAgendamento = (r) => ({ id: r.id, petId: r.pet_id, servico: r.servico, data: r.data, hora: (r.hora || "").slice(0, 5), status: r.status, valor: Number(r.valor) });
-const mapVenda = (r) => ({ id: r.id, clienteId: r.cliente_id, item: r.item, qtd: r.qtd, valor: Number(r.valor), formaPagamento: r.forma_pagamento });
+const mapVenda = (r) => ({ id: r.id, clienteId: r.cliente_id, item: r.item, qtd: r.qtd, valor: Number(r.valor), formaPagamento: r.forma_pagamento, data: (r.created_at || "").slice(0, 10) });
 const mapDespesa = (r) => ({ id: r.id, descricao: r.descricao, valor: Number(r.valor), data: r.data });
 
 export function AppProvider({ children }) {
@@ -109,36 +109,71 @@ export function AppProvider({ children }) {
     const nomeCliente = (id) => state.clientes.find((c) => c.id === id)?.nome || "—";
     const petInfo = (id) => state.pets.find((p) => p.id === id);
 
-    const totalVendas = state.vendas.reduce((s, v) => s + v.qtd * v.valor, 0);
-    const totalPlanos = state.assinaturas.reduce(
-      (s, a) => s + (state.planos.find((p) => p.id === a.planoId)?.preco || 0),
-      0
-    );
-    const totalEntradas = totalVendas + totalPlanos;
-    const totalDespesas = state.despesas.reduce((s, d) => s + d.valor, 0);
-    const saldo = totalEntradas - totalDespesas;
+    // Resumo financeiro de um mês ("YYYY-MM"). O faturamento de um petshop vem
+    // principalmente dos serviços prestados, então agendamentos concluídos
+    // contam como entrada — sem exigir que o dono registre a mesma coisa duas
+    // vezes (uma no agendamento, outra em vendas).
+    const resumoFinanceiro = (mesRef) => {
+      const doMes = (dataStr) => (dataStr || "").startsWith(mesRef);
 
-    const totalPorPagamento = FORMAS_PAGAMENTO.map((forma) => ({
-      forma,
-      total: state.vendas
-        .filter((v) => v.formaPagamento === forma)
-        .reduce((s, v) => s + v.qtd * v.valor, 0),
-    }));
+      const servicosConcluidos = state.agendamentos.filter((a) => a.status === "Concluído" && doMes(a.data));
+      const totalServicos = servicosConcluidos.reduce((s, a) => s + a.valor, 0);
+
+      const vendasDoMes = state.vendas.filter((v) => doMes(v.data));
+      const totalVendas = vendasDoMes.reduce((s, v) => s + v.qtd * v.valor, 0);
+
+      // Uma assinatura gera receita recorrente em todo mês a partir do início.
+      const fimDoMes = `${mesRef}-31`;
+      const totalPlanos = state.assinaturas
+        .filter((a) => (a.dataInicio || "") <= fimDoMes)
+        .reduce((s, a) => s + (state.planos.find((p) => p.id === a.planoId)?.preco || 0), 0);
+
+      const despesasDoMes = state.despesas.filter((d) => doMes(d.data));
+      const totalDespesas = despesasDoMes.reduce((s, d) => s + d.valor, 0);
+
+      const totalEntradas = totalServicos + totalVendas + totalPlanos;
+
+      const totalPorPagamento = FORMAS_PAGAMENTO.map((forma) => ({
+        forma,
+        total: vendasDoMes
+          .filter((v) => v.formaPagamento === forma)
+          .reduce((s, v) => s + v.qtd * v.valor, 0),
+      }));
+
+      return {
+        totalServicos,
+        totalVendas,
+        totalPlanos,
+        totalEntradas,
+        totalDespesas,
+        saldo: totalEntradas - totalDespesas,
+        totalPorPagamento,
+        despesasDoMes,
+        qtdServicos: servicosConcluidos.length,
+        ticketMedio: servicosConcluidos.length ? totalServicos / servicosConcluidos.length : 0,
+      };
+    };
+
+    const mesAtualRef = hojeStr.slice(0, 7);
+    const resumoMes = resumoFinanceiro(mesAtualRef);
 
     const agendamentosHoje = state.agendamentos.filter((a) => a.data === hojeStr);
     const contaNoDia = (dataStr) => state.agendamentos.filter((a) => a.data === dataStr).length;
 
+    // Previsto para hoje: o que ainda não foi cancelado.
+    const previstoHoje = agendamentosHoje
+      .filter((a) => a.status !== "Cancelado")
+      .reduce((s, a) => s + a.valor, 0);
+
     return {
       hoje,
       hojeStr,
+      mesAtualRef,
       nomeCliente,
       petInfo,
-      totalVendas,
-      totalPlanos,
-      totalEntradas,
-      totalDespesas,
-      saldo,
-      totalPorPagamento,
+      resumoFinanceiro,
+      resumoMes,
+      previstoHoje,
       agendamentosHoje,
       contaNoDia,
     };

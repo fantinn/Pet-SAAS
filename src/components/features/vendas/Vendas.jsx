@@ -1,17 +1,18 @@
 import { Plus, Trash2 } from "lucide-react";
 import Button from "../../common/Button";
+import { formatBRL } from "../../../utils/format";
 
-export default function Vendas({ 
-  clientes, 
-  vendas, 
-  servicosPadrao, 
-  formasPagamento, 
-  novaVenda, 
-  setNovaVenda, 
-  addVenda, 
+export default function Vendas({
+  clientes,
+  vendas,
+  servicosPadrao,
+  formasPagamento,
+  novaVenda,
+  setNovaVenda,
+  addVenda,
   delVenda,
-  totalVendas,
-  nomeCliente 
+  totalVendasMes,
+  nomeCliente
 }) {
   return (
     <div className="space-y-6">
@@ -90,14 +91,14 @@ export default function Vendas({
         </div>
 
         <div>
-          <h3 className="font-semibold mb-3">Total de Vendas: R$ {totalVendas.toFixed(2)}</h3>
+          <h3 className="font-semibold mb-3">Vendas do mês: {formatBRL(totalVendasMes)}</h3>
           <div className="space-y-2 max-h-96 overflow-y-auto">
             {vendas.map((venda) => (
               <div key={venda.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                 <div>
                   <p className="font-medium">{venda.item}</p>
                   <p className="text-sm text-gray-500">
-                    {venda.qtd}x R$ {venda.valor.toFixed(2)} = R$ {(venda.qtd * venda.valor).toFixed(2)}
+                    {venda.qtd}x {formatBRL(venda.valor)} = {formatBRL(venda.qtd * venda.valor)}
                   </p>
                   <p className="text-sm text-gray-500">
                     Cliente: {nomeCliente(venda.clienteId)} | {venda.formaPagamento}
