@@ -14,6 +14,8 @@ export default function Vendas({
   totalVendasMes,
   nomeCliente
 }) {
+  const itemVenda = novaVenda.itemTipo === "custom" ? novaVenda.itemCustom : novaVenda.itemTipo;
+
   function confirmarExclusao(venda) {
     const total = formatBRL(venda.qtd * venda.valor);
     if (!window.confirm(`Excluir a venda "${venda.item}" de ${total}? Não dá para desfazer.`)) return;
@@ -85,7 +87,7 @@ export default function Vendas({
                   <option key={forma} value={forma}>{forma}</option>
                 ))}
               </select>
-              <Button onClick={addVenda} variant="primary" className="w-full">
+              <Button onClick={addVenda} variant="primary" className="w-full" disabled={!itemVenda || !novaVenda.valor}>
                 <Plus size={16} /> Registrar Venda
               </Button>
             </div>

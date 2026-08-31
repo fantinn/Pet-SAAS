@@ -120,7 +120,12 @@ export default function Financeiro({
               onChange={(e) => setNovaDespesa({ ...novaDespesa, data: e.target.value })}
               className="w-full px-4 py-2 border rounded-lg"
             />
-            <Button onClick={addDespesa} variant="danger" className="w-full">
+            <Button
+              onClick={addDespesa}
+              variant="danger"
+              className="w-full"
+              disabled={!novaDespesa.descricao.trim() || !novaDespesa.valor}
+            >
               <Plus size={16} /> Registrar Despesa
             </Button>
           </div>

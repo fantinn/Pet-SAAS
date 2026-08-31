@@ -190,7 +190,7 @@ export default function Clientes({
               onChange={(e) => setNovoCliente({ ...novoCliente, telefone: e.target.value })}
               className="flex-1 min-w-0 px-4 py-2 border rounded-lg"
             />
-            <Button onClick={addCliente} variant="primary" className="shrink-0">
+            <Button onClick={addCliente} variant="primary" className="shrink-0" disabled={!novoCliente.nome.trim()}>
               <Plus size={16} /> Adicionar
             </Button>
           </div>
@@ -427,7 +427,12 @@ export default function Clientes({
                         onChange={(e) => setNovoPet({ ...novoPet, raca: e.target.value })}
                         className="min-w-0 px-3 py-2 border rounded-lg text-sm"
                       />
-                      <Button onClick={() => handleAddPet(cliente.id)} variant="primary" className="text-xs shrink-0">
+                      <Button
+                        onClick={() => handleAddPet(cliente.id)}
+                        variant="primary"
+                        className="text-xs shrink-0"
+                        disabled={!novoPet.nome.trim()}
+                      >
                         <Plus size={14} /> Adicionar pet
                       </Button>
                     </div>
