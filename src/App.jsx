@@ -4,6 +4,7 @@ import { FORMAS_PAGAMENTO, STATUS_COR } from "./data/constants";
 import { formatDate, deslocarMes } from "./utils/format";
 
 // Layout components
+import { Menu } from "lucide-react";
 import Sidebar from "./components/layout/Sidebar";
 
 // Feature components
@@ -23,6 +24,7 @@ export default function PetshopSaaS() {
 
   // Estado local de UI (não persiste)
   const [tab, setTab] = useState("dashboard");
+  const [menuAberto, setMenuAberto] = useState(false);
   const [buscaCliente, setBuscaCliente] = useState("");
 
   // Formulários locais
@@ -146,11 +148,39 @@ export default function PetshopSaaS() {
   // Derived values for components
   const contaNoDia = (dataStr) => state.agendamentos.filter((a) => a.data === dataStr).length;
 
+  const tituloAba = {
+    dashboard: "Dashboard",
+    agendamentos: "Agendamentos",
+    clientes: "Clientes",
+    vendas: "Vendas",
+    financeiro: "Financeiro",
+    planos: "Planos",
+    settings: "Configurações",
+  }[tab];
+
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 flex">
-      <Sidebar tab={tab} setTab={setTab} />
+      <Sidebar
+        tab={tab}
+        setTab={setTab}
+        menuAberto={menuAberto}
+        onFecharMenu={() => setMenuAberto(false)}
+      />
 
-      <main className="flex-1 bg-white border-l p-6 overflow-auto">
+      <div className="flex-1 min-w-0 flex flex-col">
+        {/* Barra superior só no celular, onde a sidebar vira gaveta */}
+        <header className="lg:hidden sticky top-0 z-20 flex items-center gap-3 px-4 py-3 bg-white border-b">
+          <button
+            onClick={() => setMenuAberto(true)}
+            className="p-2 -ml-2 hover:bg-gray-100 rounded-lg"
+            title="Abrir menu"
+          >
+            <Menu size={22} />
+          </button>
+          <h1 className="font-semibold">{tituloAba}</h1>
+        </header>
+
+      <main className="flex-1 bg-white lg:border-l p-4 sm:p-6 overflow-auto">
         {error && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
             Erro ao sincronizar com o banco: {error}
@@ -279,6 +309,7 @@ export default function PetshopSaaS() {
           </>
         )}
       </main>
+      </div>
     </div>
   );
 }

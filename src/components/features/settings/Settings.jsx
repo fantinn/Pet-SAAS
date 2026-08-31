@@ -19,6 +19,27 @@ export default function Settings({
   const [novoPlano, setNovoPlano] = useState({ nome: "", descricao: "", preco: "" });
   const [horarioAbertura, setHorarioAbertura] = useState(configuracoes.horarioAbertura || 8);
   const [horarioFechamento, setHorarioFechamento] = useState(configuracoes.horarioFechamento || 18);
+  const [horarioSalvo, setHorarioSalvo] = useState(false);
+
+  // Edições em campos de texto ficam em rascunho local e só vão para o banco
+  // quando o campo perde o foco — digitar não pode disparar um UPDATE por tecla.
+  const [rascunhos, setRascunhos] = useState({});
+
+  const valorCampo = (tipo, item, campo) => rascunhos[`${tipo}:${item.id}:${campo}`] ?? item[campo] ?? "";
+
+  const editarCampo = (tipo, item, campo, valor) =>
+    setRascunhos((r) => ({ ...r, [`${tipo}:${item.id}:${campo}`]: valor }));
+
+  function confirmarCampo(tipo, item, campo, salvar) {
+    const chave = `${tipo}:${item.id}:${campo}`;
+    const rascunho = rascunhos[chave];
+    setRascunhos((r) => {
+      const { [chave]: _, ...resto } = r;
+      return resto;
+    });
+    if (rascunho === undefined || String(rascunho) === String(item[campo] ?? "")) return;
+    salvar(rascunho);
+  }
 
   function handleAddServico() {
     if (!novoServico.nome || !novoServico.preco || !novoServico.duracao) return;
@@ -50,11 +71,13 @@ export default function Settings({
     onUpdatePlano(id, { ...plano, [campo]: valor });
   }
 
-  function handleSaveConfiguracoes() {
-    onUpdateConfiguracoes({
+  async function handleSaveConfiguracoes() {
+    await onUpdateConfiguracoes({
       horarioAbertura: Number(horarioAbertura),
       horarioFechamento: Number(horarioFechamento)
     });
+    setHorarioSalvo(true);
+    setTimeout(() => setHorarioSalvo(false), 2500);
   }
 
   function handleLoadSeedData() {
@@ -114,9 +137,17 @@ export default function Settings({
             </select>
           </div>
         </div>
-        <Button onClick={handleSaveConfiguracoes} variant="primary" className="mt-4">
-          Salvar Horários
-        </Button>
+        <div className="flex items-center gap-3 mt-4">
+          <Button onClick={handleSaveConfiguracoes} variant="primary">
+            Salvar Horários
+          </Button>
+          {horarioSalvo && (
+            <span className="text-sm text-green-600 font-medium">Horários salvos</span>
+          )}
+        </div>
+        <p className="text-xs text-gray-500 mt-2">
+          Os horários oferecidos ao agendar respeitam esta faixa.
+        </p>
       </div>
 
       {/* Serviços */}
@@ -159,8 +190,9 @@ export default function Settings({
               <div className="flex-1">
                 <input
                   type="text"
-                  value={servico.nome}
-                  onChange={(e) => handleUpdateServico(servico.id, 'nome', e.target.value)}
+                  value={valorCampo("servico", servico, "nome")}
+                  onChange={(e) => editarCampo("servico", servico, "nome", e.target.value)}
+                  onBlur={() => confirmarCampo("servico", servico, "nome", (v) => v && handleUpdateServico(servico.id, "nome", v))}
                   className="w-full px-3 py-2 border rounded-lg font-medium"
                 />
               </div>
@@ -168,8 +200,9 @@ export default function Settings({
                 <DollarSign size={16} className="text-green-600" />
                 <input
                   type="number"
-                  value={servico.preco}
-                  onChange={(e) => handleUpdateServico(servico.id, 'preco', Number(e.target.value))}
+                  value={valorCampo("servico", servico, "preco")}
+                  onChange={(e) => editarCampo("servico", servico, "preco", e.target.value)}
+                  onBlur={() => confirmarCampo("servico", servico, "preco", (v) => handleUpdateServico(servico.id, "preco", Number(v) || 0))}
                   className="w-20 px-3 py-2 border rounded-lg"
                 />
               </div>
@@ -177,8 +210,9 @@ export default function Settings({
                 <Clock size={16} className="text-blue-600" />
                 <input
                   type="number"
-                  value={servico.duracao}
-                  onChange={(e) => handleUpdateServico(servico.id, 'duracao', Number(e.target.value))}
+                  value={valorCampo("servico", servico, "duracao")}
+                  onChange={(e) => editarCampo("servico", servico, "duracao", e.target.value)}
+                  onBlur={() => confirmarCampo("servico", servico, "duracao", (v) => handleUpdateServico(servico.id, "duracao", Number(v) || 30))}
                   className="w-20 px-3 py-2 border rounded-lg"
                 />
                 <span className="text-sm text-gray-500">min</span>
@@ -230,14 +264,16 @@ export default function Settings({
             <div key={plano.id} className="p-4 bg-white rounded-lg border">
               <input
                 type="text"
-                value={plano.nome}
-                onChange={(e) => handleUpdatePlano(plano.id, 'nome', e.target.value)}
+                value={valorCampo("plano", plano, "nome")}
+                onChange={(e) => editarCampo("plano", plano, "nome", e.target.value)}
+                onBlur={() => confirmarCampo("plano", plano, "nome", (v) => v && handleUpdatePlano(plano.id, "nome", v))}
                 className="w-full px-3 py-2 border rounded-lg font-medium mb-3"
                 placeholder="Nome"
               />
               <textarea
-                value={plano.descricao}
-                onChange={(e) => handleUpdatePlano(plano.id, 'descricao', e.target.value)}
+                value={valorCampo("plano", plano, "descricao")}
+                onChange={(e) => editarCampo("plano", plano, "descricao", e.target.value)}
+                onBlur={() => confirmarCampo("plano", plano, "descricao", (v) => handleUpdatePlano(plano.id, "descricao", v))}
                 className="w-full px-3 py-2 border rounded-lg mb-3"
                 rows={2}
                 placeholder="Descrição"
@@ -247,8 +283,9 @@ export default function Settings({
                   <DollarSign size={16} className="text-green-600" />
                   <input
                     type="number"
-                    value={plano.preco}
-                    onChange={(e) => handleUpdatePlano(plano.id, 'preco', Number(e.target.value))}
+                    value={valorCampo("plano", plano, "preco")}
+                    onChange={(e) => editarCampo("plano", plano, "preco", e.target.value)}
+                    onBlur={() => confirmarCampo("plano", plano, "preco", (v) => handleUpdatePlano(plano.id, "preco", Number(v) || 0))}
                     className="w-24 px-3 py-2 border rounded-lg"
                   />
                   <span className="text-sm text-gray-500">/mês</span>
