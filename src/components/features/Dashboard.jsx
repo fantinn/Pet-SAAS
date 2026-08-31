@@ -1,6 +1,7 @@
 import StatusBadge from "../common/StatusBadge";
-import { Dog, Clock, Check, MessageCircle, Users, CalendarDays, TrendingUp } from "lucide-react";
-import { formatBRL } from "../../utils/format";
+import WhatsAppLink from "../common/WhatsAppLink";
+import { Dog, Clock, Check, Users, CalendarDays, TrendingUp } from "lucide-react";
+import { formatBRL, mensagemConfirmacao } from "../../utils/format";
 
 function Metrica({ icone: Icone, label, valor, detalhe }) {
   return (
@@ -24,14 +25,10 @@ export default function Dashboard({
   statusCor,
   petInfo,
   nomeCliente,
+  clienteDoPet,
   onCicloStatus,
   onAbrirCliente,
 }) {
-  const clientePorPet = (petId) => {
-    const pet = petInfo(petId);
-    if (!pet) return null;
-    return clientes.find((c) => c.id === pet.clienteId);
-  };
 
   const pendentesHoje = agendamentosHoje.filter((a) => a.status === "Agendado").length;
 
@@ -75,11 +72,7 @@ export default function Dashboard({
         <div className="grid gap-3">
           {agendamentosHoje.map((a) => {
             const pet = petInfo(a.petId);
-            const cliente = clientePorPet(a.petId);
-            const digitos = (cliente?.telefone || "").replace(/\D/g, "");
-            const linkZap = digitos
-              ? `https://wa.me/${digitos.startsWith("55") ? digitos : "55" + digitos}`
-              : null;
+            const cliente = clienteDoPet(a.petId);
 
             return (
               <div
@@ -128,15 +121,13 @@ export default function Dashboard({
                         <Check size={14} /> Concluir
                       </button>
                     )}
-                    {linkZap && (
-                      <a
-                        href={linkZap}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-xs text-green-600 hover:text-green-700"
-                      >
-                        <MessageCircle size={13} /> WhatsApp
-                      </a>
+                    {cliente && (
+                      <div className="text-xs">
+                        <WhatsAppLink
+                          telefone={cliente.telefone}
+                          mensagem={mensagemConfirmacao({ petNome: pet?.nome || "seu pet", servico: a.servico, data: a.data, hora: a.hora })}
+                        />
+                      </div>
                     )}
                   </div>
                 </div>

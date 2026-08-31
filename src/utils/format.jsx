@@ -36,8 +36,16 @@ export function deslocarMes(mesRef, delta) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
-export function linkWhatsapp(telefone) {
+export function linkWhatsapp(telefone, mensagem) {
   const digits = (telefone || "").replace(/\D/g, "");
   if (!digits) return null;
-  return `https://wa.me/${digits.startsWith("55") ? digits : "55" + digits}`;
+  const numero = digits.startsWith("55") ? digits : "55" + digits;
+  return mensagem
+    ? `https://wa.me/${numero}?text=${encodeURIComponent(mensagem)}`
+    : `https://wa.me/${numero}`;
+}
+
+// Texto pronto para confirmar/lembrar um agendamento pelo WhatsApp.
+export function mensagemConfirmacao({ petNome, servico, data, hora }) {
+  return `Olá! Passando para confirmar o agendamento do(a) ${petNome} - ${servico} no dia ${formatDataBR(data)} às ${hora}. Qualquer coisa, é só chamar!`;
 }

@@ -108,6 +108,10 @@ export function AppProvider({ children }) {
 
     const nomeCliente = (id) => state.clientes.find((c) => c.id === id)?.nome || "—";
     const petInfo = (id) => state.pets.find((p) => p.id === id);
+    const clienteDoPet = (petId) => {
+      const pet = petInfo(petId);
+      return pet ? state.clientes.find((c) => c.id === pet.clienteId) : null;
+    };
 
     // Resumo financeiro de um mês ("YYYY-MM"). O faturamento de um petshop vem
     // principalmente dos serviços prestados, então agendamentos concluídos
@@ -171,6 +175,7 @@ export function AppProvider({ children }) {
       mesAtualRef,
       nomeCliente,
       petInfo,
+      clienteDoPet,
       resumoFinanceiro,
       resumoMes,
       previstoHoje,

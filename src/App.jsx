@@ -235,6 +235,7 @@ export default function PetshopSaaS() {
             statusCor={STATUS_COR}
             petInfo={derived.petInfo}
             nomeCliente={derived.nomeCliente}
+            clienteDoPet={derived.clienteDoPet}
             onCicloStatus={cicloStatus}
             onAbrirCliente={abrirCliente}
           />
@@ -294,6 +295,7 @@ export default function PetshopSaaS() {
             setDiaSelecionado={setDiaSelecionado}
             petInfo={derived.petInfo}
             nomeCliente={derived.nomeCliente}
+            clienteDoPet={derived.clienteDoPet}
             contaNoDia={contaNoDia}
             statusCor={STATUS_COR}
             diasDoMes={diasDoMes}

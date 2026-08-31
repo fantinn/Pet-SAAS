@@ -1,11 +1,10 @@
 import { MessageCircle } from "lucide-react";
+import { linkWhatsapp } from "../../utils/format";
 
-export default function WhatsAppLink({ telefone }) {
-  const digits = (telefone || "").replace(/\D/g, "");
-  if (!digits) return null;
-  
-  const link = `https://wa.me/${digits.startsWith("55") ? digits : "55" + digits}`;
-  
+export default function WhatsAppLink({ telefone, mensagem, children }) {
+  const link = linkWhatsapp(telefone, mensagem);
+  if (!link) return null;
+
   return (
     <a
       href={link}
@@ -14,7 +13,7 @@ export default function WhatsAppLink({ telefone }) {
       className="text-green-600 hover:text-green-700 flex items-center gap-1"
     >
       <MessageCircle size={14} />
-      WhatsApp
+      {children || "WhatsApp"}
     </a>
   );
 }

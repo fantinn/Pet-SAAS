@@ -1,25 +1,27 @@
 import { Plus, Trash2, ChevronLeft, ChevronRight, Clock, DollarSign } from "lucide-react";
 import Button from "../../common/Button";
 import StatusBadge from "../../common/StatusBadge";
+import WhatsAppLink from "../../common/WhatsAppLink";
 import { calcularHorariosDisponiveis } from "../../../utils/availability.js";
-import { formatBRL, formatDataBR } from "../../../utils/format";
+import { formatBRL, formatDataBR, mensagemConfirmacao } from "../../../utils/format";
 
-export default function Agendamentos({ 
-  pets, 
-  agendamentos, 
-  servicosPadrao, 
-  novoAg, 
-  setNovoAg, 
-  addAg, 
-  delAg, 
+export default function Agendamentos({
+  pets,
+  agendamentos,
+  servicosPadrao,
+  novoAg,
+  setNovoAg,
+  addAg,
+  delAg,
   cicloStatus,
-  mesAtual, 
-  prevMes, 
-  nextMes, 
-  diaSelecionado, 
+  mesAtual,
+  prevMes,
+  nextMes,
+  diaSelecionado,
   setDiaSelecionado,
   petInfo,
   nomeCliente,
+  clienteDoPet,
   contaNoDia,
   statusCor,
   diasDoMes,
@@ -259,6 +261,7 @@ export default function Agendamentos({
           <div className="space-y-2">
             {agendamentosDoDia.map((ag) => {
               const pet = petInfo(ag.petId);
+              const cliente = clienteDoPet(ag.petId);
               return (
                 <div key={ag.id} className="flex items-center justify-between gap-3 p-4 bg-gray-50 rounded-lg">
                   <div className="min-w-0">
@@ -267,6 +270,12 @@ export default function Agendamentos({
                       {ag.hora} · {formatBRL(ag.valor)}
                       {pet && ` · ${nomeCliente(pet.clienteId)}`}
                     </p>
+                    {ag.status === "Agendado" && cliente && (
+                      <WhatsAppLink
+                        telefone={cliente.telefone}
+                        mensagem={mensagemConfirmacao({ petNome: pet?.nome || "seu pet", servico: ag.servico, data: ag.data, hora: ag.hora })}
+                      />
+                    )}
                   </div>
                   <div className="flex gap-2 shrink-0">
                     <button

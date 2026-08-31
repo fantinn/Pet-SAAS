@@ -43,9 +43,13 @@ export default function Clientes({
   const [obsRascunho, setObsRascunho] = useState({});
   const [obsSalva, setObsSalva] = useState(null);
 
-  const clientesFiltrados = clientes.filter((c) =>
-    c.nome.toLowerCase().includes(buscaCliente.toLowerCase())
-  );
+  // Quem liga costuma lembrar o nome do pet ("a dona da Bella") melhor que o
+  // do dono, então a busca cobre os dois.
+  const clientesFiltrados = clientes.filter((c) => {
+    const termo = buscaCliente.toLowerCase();
+    if (c.nome.toLowerCase().includes(termo)) return true;
+    return getPetsDoCliente(c.id).some((p) => p.nome.toLowerCase().includes(termo));
+  });
 
   function textoObs(pet) {
     return obsRascunho[pet.id] ?? pet.observacoes ?? "";
