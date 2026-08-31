@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useApp } from "./context/AppProvider";
 import { FORMAS_PAGAMENTO, STATUS_COR } from "./data/constants";
 import { formatDate, deslocarMes } from "./utils/format";
@@ -19,12 +19,39 @@ import Settings from "./components/features/settings/Settings";
 // Custom hooks
 import { useCalendar } from "./hooks/useCalendar";
 
+// A aba vive na URL: no celular o botão "voltar" é o gesto natural de
+// navegação, e recarregar a página não pode jogar o usuário no Dashboard.
+const ABAS = {
+  dashboard: "Dashboard",
+  agendamentos: "Agendamentos",
+  clientes: "Clientes",
+  vendas: "Vendas",
+  financeiro: "Financeiro",
+  planos: "Planos",
+  settings: "Configurações",
+};
+
+function abaDaUrl() {
+  const alvo = window.location.hash.replace(/^#\/?/, "");
+  return ABAS[alvo] ? alvo : "dashboard";
+}
+
 export default function PetshopSaaS() {
   const { state, derived, actions, loading, error } = useApp();
 
   // Estado local de UI (não persiste)
-  const [tab, setTab] = useState("dashboard");
+  const [tab, setTab] = useState(abaDaUrl);
   const [menuAberto, setMenuAberto] = useState(false);
+
+  useEffect(() => {
+    const aoMudarUrl = () => setTab(abaDaUrl());
+    window.addEventListener("hashchange", aoMudarUrl);
+    return () => window.removeEventListener("hashchange", aoMudarUrl);
+  }, []);
+
+  useEffect(() => {
+    if (abaDaUrl() !== tab) window.location.hash = `#/${tab}`;
+  }, [tab]);
   const [buscaCliente, setBuscaCliente] = useState("");
 
   // Formulários locais
@@ -148,15 +175,7 @@ export default function PetshopSaaS() {
   // Derived values for components
   const contaNoDia = (dataStr) => state.agendamentos.filter((a) => a.data === dataStr).length;
 
-  const tituloAba = {
-    dashboard: "Dashboard",
-    agendamentos: "Agendamentos",
-    clientes: "Clientes",
-    vendas: "Vendas",
-    financeiro: "Financeiro",
-    planos: "Planos",
-    settings: "Configurações",
-  }[tab];
+  const tituloAba = ABAS[tab];
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 flex">
