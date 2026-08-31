@@ -236,6 +236,7 @@ export default function PetshopSaaS() {
             petInfo={derived.petInfo}
             nomeCliente={derived.nomeCliente}
             clienteDoPet={derived.clienteDoPet}
+            clientesParaReativar={derived.clientesParaReativar}
             onCicloStatus={cicloStatus}
             onAbrirCliente={abrirCliente}
           />

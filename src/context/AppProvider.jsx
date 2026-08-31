@@ -169,6 +169,34 @@ export function AppProvider({ children }) {
       .filter((a) => a.status !== "Cancelado")
       .reduce((s, a) => s + a.valor, 0);
 
+    // Clientes que já vieram antes mas não voltam há um tempo (e não têm nada
+    // marcado) — a lista de reativação que o dono usa para chamar no WhatsApp.
+    const LIMITE_DIAS_SEM_RETORNO = 45;
+    const diasEntre = (dataStr) =>
+      Math.round((new Date(`${hojeStr}T00:00:00`) - new Date(`${dataStr}T00:00:00`)) / 86400000);
+
+    const clientesParaReativar = state.clientes
+      .map((cliente) => {
+        const idsPets = new Set(state.pets.filter((p) => p.clienteId === cliente.id).map((p) => p.id));
+        if (idsPets.size === 0) return null;
+
+        const visitas = state.agendamentos.filter((a) => idsPets.has(a.petId) && a.status === "Concluído");
+        if (visitas.length === 0) return null;
+
+        const temFuturo = state.agendamentos.some(
+          (a) => idsPets.has(a.petId) && a.status === "Agendado" && a.data >= hojeStr
+        );
+        if (temFuturo) return null;
+
+        const ultima = visitas.reduce((max, a) => (a.data > max.data ? a : max));
+        const dias = diasEntre(ultima.data);
+        if (dias < LIMITE_DIAS_SEM_RETORNO) return null;
+
+        return { cliente, pet: petInfo(ultima.petId), ultimaVisita: ultima, dias };
+      })
+      .filter(Boolean)
+      .sort((a, b) => b.dias - a.dias);
+
     return {
       hoje,
       hojeStr,
@@ -181,6 +209,7 @@ export function AppProvider({ children }) {
       previstoHoje,
       agendamentosHoje,
       contaNoDia,
+      clientesParaReativar,
     };
   }, [state]);
 

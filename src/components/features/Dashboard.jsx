@@ -1,7 +1,7 @@
 import StatusBadge from "../common/StatusBadge";
 import WhatsAppLink from "../common/WhatsAppLink";
-import { Dog, Clock, Check, Users, CalendarDays, TrendingUp } from "lucide-react";
-import { formatBRL, mensagemConfirmacao } from "../../utils/format";
+import { Dog, Clock, Check, Users, CalendarDays, TrendingUp, UserX } from "lucide-react";
+import { formatBRL, mensagemConfirmacao, mensagemReativacao } from "../../utils/format";
 
 function Metrica({ icone: Icone, label, valor, detalhe }) {
   return (
@@ -26,6 +26,7 @@ export default function Dashboard({
   petInfo,
   nomeCliente,
   clienteDoPet,
+  clientesParaReativar,
   onCicloStatus,
   onAbrirCliente,
 }) {
@@ -134,6 +135,43 @@ export default function Dashboard({
               </div>
             );
           })}
+        </div>
+      )}
+
+      {clientesParaReativar.length > 0 && (
+        <div className="mt-8">
+          <p className="text-xs text-gray-400 mb-3">
+            Sem retorno · {clientesParaReativar.length} {clientesParaReativar.length === 1 ? "cliente" : "clientes"} não agendam há mais de 45 dias
+          </p>
+          <div className="grid gap-2">
+            {clientesParaReativar.map(({ cliente, pet, dias }) => (
+              <div
+                key={cliente.id}
+                className="flex items-center justify-between gap-3 p-3 bg-amber-50 border border-amber-100 rounded-lg"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <UserX size={16} className="text-amber-500 shrink-0" />
+                  <div className="min-w-0">
+                    <button
+                      onClick={() => onAbrirCliente(cliente)}
+                      className="text-sm font-medium text-gray-800 hover:text-blue-600 hover:underline"
+                    >
+                      {cliente.nome}
+                    </button>
+                    <p className="text-xs text-gray-500">
+                      {pet?.nome || "pet"} · há {dias} dias sem vir
+                    </p>
+                  </div>
+                </div>
+                <div className="text-xs shrink-0">
+                  <WhatsAppLink
+                    telefone={cliente.telefone}
+                    mensagem={mensagemReativacao({ petNome: pet?.nome || "seu pet", dias })}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

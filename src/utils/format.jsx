@@ -49,3 +49,8 @@ export function linkWhatsapp(telefone, mensagem) {
 export function mensagemConfirmacao({ petNome, servico, data, hora }) {
   return `Olá! Passando para confirmar o agendamento do(a) ${petNome} - ${servico} no dia ${formatDataBR(data)} às ${hora}. Qualquer coisa, é só chamar!`;
 }
+
+// Texto pronto para reativar um cliente que não volta há um tempo.
+export function mensagemReativacao({ petNome, dias }) {
+  return `Olá! Faz ${dias} dias que o(a) ${petNome} não vem aqui. Bora agendar um banho ou uma tosa? 🐾`;
+}
