@@ -124,6 +124,10 @@ export default function PetshopSaaS() {
     actions.cicloStatusAgendamento(id);
   }
 
+  function addVacina(dados) {
+    umaVezPorVez("addVacina", () => actions.addVacina(dados));
+  }
+
   function remarcarAg(id, { data, hora }) {
     umaVezPorVez(`remarcarAg-${id}`, () => actions.remarcarAgendamento(id, { data, hora }));
   }
@@ -241,6 +245,7 @@ export default function PetshopSaaS() {
             nomeCliente={derived.nomeCliente}
             clienteDoPet={derived.clienteDoPet}
             clientesParaReativar={derived.clientesParaReativar}
+            vacinasAVencer={derived.vacinasAVencer}
             onCicloStatus={cicloStatus}
             onAbrirCliente={abrirCliente}
           />
@@ -280,6 +285,9 @@ export default function PetshopSaaS() {
             delPet={actions.deletePet}
             updatePet={actions.updatePet}
             atualizarObs={actions.updatePetObservacoes}
+            vacinas={state.vacinas}
+            addVacina={addVacina}
+            delVacina={actions.deleteVacina}
           />
         )}
 

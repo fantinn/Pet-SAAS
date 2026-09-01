@@ -1,7 +1,7 @@
 import StatusBadge from "../common/StatusBadge";
 import WhatsAppLink from "../common/WhatsAppLink";
-import { Dog, Clock, Check, Users, CalendarDays, TrendingUp, UserX, AlertTriangle } from "lucide-react";
-import { formatBRL, mensagemConfirmacao, mensagemReativacao } from "../../utils/format";
+import { Dog, Clock, Check, Users, CalendarDays, TrendingUp, UserX, AlertTriangle, Syringe } from "lucide-react";
+import { formatBRL, formatDataBR, mensagemConfirmacao, mensagemReativacao, mensagemVacina } from "../../utils/format";
 
 function Metrica({ icone: Icone, label, valor, detalhe }) {
   return (
@@ -27,6 +27,7 @@ export default function Dashboard({
   nomeCliente,
   clienteDoPet,
   clientesParaReativar,
+  vacinasAVencer,
   onCicloStatus,
   onAbrirCliente,
 }) {
@@ -143,6 +144,58 @@ export default function Dashboard({
               </div>
             );
           })}
+        </div>
+      )}
+
+      {vacinasAVencer.length > 0 && (
+        <div className="mt-8">
+          <p className="text-xs text-gray-400 mb-3">
+            Vacinas · {vacinasAVencer.length} {vacinasAVencer.length === 1 ? "dose vencida ou vencendo" : "doses vencidas ou vencendo"}
+          </p>
+          <div className="grid gap-2">
+            {vacinasAVencer.map(({ vacina, pet, cliente, dias }) => {
+              const vencida = dias > 0;
+              return (
+                <div
+                  key={vacina.id}
+                  className={`flex items-center justify-between gap-3 p-3 rounded-lg border ${
+                    vencida ? "bg-red-50 border-red-100" : "bg-blue-50 border-blue-100"
+                  }`}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Syringe size={16} className={`shrink-0 ${vencida ? "text-red-500" : "text-blue-500"}`} />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-gray-800">
+                        {pet.nome} · {vacina.nome}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {vencida
+                          ? `venceu há ${dias} ${dias === 1 ? "dia" : "dias"}`
+                          : dias === 0
+                          ? "vence hoje"
+                          : `vence em ${-dias} ${dias === -1 ? "dia" : "dias"}`}
+                        {" "}· {formatDataBR(vacina.proximaDose)}
+                        {cliente && ` · ${cliente.nome}`}
+                      </p>
+                    </div>
+                  </div>
+                  {cliente && (
+                    <div className="text-xs shrink-0">
+                      <WhatsAppLink
+                        telefone={cliente.telefone}
+                        mensagem={mensagemVacina({
+                          petNome: pet.nome,
+                          vacina: vacina.nome,
+                          proximaDose: vacina.proximaDose,
+                          dias,
+                        })}
+                      />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 

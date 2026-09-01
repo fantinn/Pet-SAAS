@@ -50,6 +50,17 @@ export function mensagemConfirmacao({ petNome, servico, data, hora }) {
   return `Olá! Passando para confirmar o agendamento do(a) ${petNome} - ${servico} no dia ${formatDataBR(data)} às ${hora}. Qualquer coisa, é só chamar!`;
 }
 
+// Texto pronto para avisar que a vacina do pet está vencendo (ou venceu).
+export function mensagemVacina({ petNome, vacina, proximaDose, dias }) {
+  const quando =
+    dias > 0
+      ? `venceu em ${formatDataBR(proximaDose)}`
+      : dias === 0
+      ? "vence hoje"
+      : `vence em ${formatDataBR(proximaDose)}`;
+  return `Olá! A vacina ${vacina} do(a) ${petNome} ${quando}. Quer agendar a próxima dose com a gente?`;
+}
+
 // Texto pronto para reativar um cliente que não volta há um tempo.
 export function mensagemReativacao({ petNome, dias }) {
   return `Olá! Faz ${dias} dias que o(a) ${petNome} não vem aqui. Bora agendar um banho ou uma tosa? 🐾`;

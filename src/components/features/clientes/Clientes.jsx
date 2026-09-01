@@ -1,4 +1,4 @@
-import { Plus, Trash2, MessageCircle, Edit2, Dog, Phone, User, ChevronDown, ChevronUp, CalendarClock } from "lucide-react";
+import { Plus, Trash2, MessageCircle, Edit2, Dog, Phone, User, ChevronDown, ChevronUp, CalendarClock, Syringe } from "lucide-react";
 import WhatsAppLink from "../../common/WhatsAppLink";
 import Button from "../../common/Button";
 import { useState } from "react";
@@ -27,7 +27,26 @@ export default function Clientes({
   delPet,
   updatePet,
   atualizarObs,
+  vacinas,
+  addVacina,
+  delVacina,
 }) {
+  const [novaVacina, setNovaVacina] = useState({ nome: "", dataAplicacao: hojeStr, proximaDose: "" });
+
+  function vacinasDoPet(petId) {
+    return vacinas.filter((v) => v.petId === petId);
+  }
+
+  function salvarVacina(petId) {
+    if (!novaVacina.nome.trim()) return;
+    addVacina({ petId, ...novaVacina, nome: novaVacina.nome.trim() });
+    setNovaVacina({ nome: "", dataAplicacao: hojeStr, proximaDose: "" });
+  }
+
+  function confirmarExclusaoVacina(vacina) {
+    if (!window.confirm(`Excluir o registro da vacina "${vacina.nome}"? Não dá para desfazer.`)) return;
+    delVacina(vacina.id);
+  }
   const [formAberto, setFormAberto] = useState(false);
   const [editandoId, setEditandoId] = useState(null);
   const [clienteEditando, setClienteEditando] = useState({ nome: "", telefone: "" });
@@ -408,6 +427,73 @@ export default function Clientes({
                               <p className="text-xs text-gray-400">
                                 {obsSalva === pet.id ? "Observações salvas" : "Salva ao sair do campo"}
                               </p>
+
+                              {/* Carteira de vacinação: a próxima dose é o que
+                                  traz o cliente de volta na data certa. */}
+                              <div className="mt-4 pt-3 border-t">
+                                <p className="flex items-center gap-1.5 text-xs font-medium text-gray-600 mb-2">
+                                  <Syringe size={13} className="text-gray-400" /> Carteira de vacinação
+                                </p>
+
+                                {vacinasDoPet(pet.id).length === 0 ? (
+                                  <p className="text-xs text-gray-400 mb-2">Nenhuma vacina registrada</p>
+                                ) : (
+                                  <div className="space-y-1 mb-2">
+                                    {vacinasDoPet(pet.id).map((v) => (
+                                      <div key={v.id} className="flex items-center justify-between gap-2 text-xs bg-white border rounded px-2 py-1.5">
+                                        <span className="min-w-0">
+                                          <span className="font-medium">{v.nome}</span>
+                                          <span className="text-gray-500"> · aplicada {formatDataBR(v.dataAplicacao)}</span>
+                                          {v.proximaDose && (
+                                            <span className={v.proximaDose <= hojeStr ? "text-red-600" : "text-gray-500"}>
+                                              {" "}· próxima {formatDataBR(v.proximaDose)}
+                                            </span>
+                                          )}
+                                        </span>
+                                        <button
+                                          onClick={() => confirmarExclusaoVacina(v)}
+                                          className="text-gray-400 hover:text-red-600 shrink-0"
+                                          title="Excluir registro"
+                                        >
+                                          <Trash2 size={13} />
+                                        </button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+
+                                <div className="flex flex-col sm:flex-row gap-2">
+                                  <input
+                                    type="text"
+                                    placeholder="Vacina (ex.: V10, antirrábica)"
+                                    value={novaVacina.nome}
+                                    onChange={(e) => setNovaVacina({ ...novaVacina, nome: e.target.value })}
+                                    className="flex-1 min-w-0 px-2 py-1.5 border rounded-lg text-xs"
+                                  />
+                                  <input
+                                    type="date"
+                                    value={novaVacina.dataAplicacao}
+                                    onChange={(e) => setNovaVacina({ ...novaVacina, dataAplicacao: e.target.value })}
+                                    className="px-2 py-1.5 border rounded-lg text-xs"
+                                    title="Data da aplicação"
+                                  />
+                                  <input
+                                    type="date"
+                                    value={novaVacina.proximaDose}
+                                    onChange={(e) => setNovaVacina({ ...novaVacina, proximaDose: e.target.value })}
+                                    className="px-2 py-1.5 border rounded-lg text-xs"
+                                    title="Próxima dose (opcional)"
+                                  />
+                                  <Button
+                                    onClick={() => salvarVacina(pet.id)}
+                                    variant="primary"
+                                    className="text-xs shrink-0"
+                                    disabled={!novaVacina.nome.trim()}
+                                  >
+                                    <Plus size={13} /> Registrar
+                                  </Button>
+                                </div>
+                              </div>
                             </div>
                           )}
                         </div>

@@ -18,6 +18,7 @@ const ESTADO_VAZIO = {
   despesas: [],
   servicos: [],
   planos: [],
+  vacinas: [],
   configuracoes: { horarioAbertura: 8, horarioFechamento: 18 },
 };
 
@@ -48,6 +49,7 @@ const mapAssinatura = (r) => ({ id: r.id, clienteId: r.cliente_id, planoId: r.pl
 const mapAgendamento = (r) => ({ id: r.id, petId: r.pet_id, servico: r.servico, data: r.data, hora: (r.hora || "").slice(0, 5), status: r.status, valor: Number(r.valor) });
 const mapVenda = (r) => ({ id: r.id, clienteId: r.cliente_id, item: r.item, qtd: r.qtd, valor: Number(r.valor), formaPagamento: r.forma_pagamento, data: (r.created_at || "").slice(0, 10) });
 const mapDespesa = (r) => ({ id: r.id, descricao: r.descricao, valor: Number(r.valor), data: r.data });
+const mapVacina = (r) => ({ id: r.id, petId: r.pet_id, nome: r.nome, dataAplicacao: r.data_aplicacao, proximaDose: r.proxima_dose });
 
 export function AppProvider({ children }) {
   const { user } = useAuth();
@@ -67,7 +69,7 @@ export function AppProvider({ children }) {
     setLoading(true);
     setError("");
 
-    const [clientes, pets, servicos, planos, assinaturas, agendamentos, vendas, despesas, config] = await Promise.all([
+    const [clientes, pets, servicos, planos, assinaturas, agendamentos, vendas, despesas, vacinas, config] = await Promise.all([
       supabase.from("clientes").select("*").order("nome"),
       supabase.from("pets").select("*").order("nome"),
       supabase.from("servicos").select("*").order("nome"),
@@ -76,10 +78,11 @@ export function AppProvider({ children }) {
       supabase.from("agendamentos").select("*").order("data").order("hora"),
       supabase.from("vendas").select("*").order("created_at", { ascending: false }),
       supabase.from("despesas").select("*").order("created_at", { ascending: false }),
+      supabase.from("vacinas").select("*").order("proxima_dose"),
       supabase.from("configuracoes").select("*").maybeSingle(),
     ]);
 
-    const primeiroErro = [clientes, pets, servicos, planos, assinaturas, agendamentos, vendas, despesas, config].find(
+    const primeiroErro = [clientes, pets, servicos, planos, assinaturas, agendamentos, vendas, despesas, vacinas, config].find(
       (r) => r.error
     );
     if (primeiroErro) {
@@ -97,6 +100,7 @@ export function AppProvider({ children }) {
       agendamentos: agendamentos.data.map(mapAgendamento),
       vendas: vendas.data.map(mapVenda),
       despesas: despesas.data.map(mapDespesa),
+      vacinas: vacinas.data.map(mapVacina),
       configuracoes: config.data
         ? { horarioAbertura: config.data.horario_abertura, horarioFechamento: config.data.horario_fechamento }
         : { horarioAbertura: 8, horarioFechamento: 18 },
@@ -204,6 +208,18 @@ export function AppProvider({ children }) {
       .filter(Boolean)
       .sort((a, b) => b.dias - a.dias);
 
+    // Vacina vencida ou vencendo nas próximas semanas: é receita recorrente
+    // que só acontece se alguém lembrar o dono a tempo.
+    const DIAS_AVISO_VACINA = 30;
+    const vacinasAVencer = state.vacinas
+      .filter((v) => v.proximaDose && diasEntre(v.proximaDose) >= -DIAS_AVISO_VACINA)
+      .map((v) => {
+        const pet = petInfo(v.petId);
+        return pet ? { vacina: v, pet, cliente: clienteDoPet(v.petId), dias: diasEntre(v.proximaDose) } : null;
+      })
+      .filter(Boolean)
+      .sort((a, b) => b.dias - a.dias);
+
     return {
       hoje,
       hojeStr,
@@ -217,6 +233,7 @@ export function AppProvider({ children }) {
       agendamentosHoje,
       contaNoDia,
       clientesParaReativar,
+      vacinasAVencer,
     };
   }, [state]);
 
@@ -247,6 +264,7 @@ export function AppProvider({ children }) {
             assinaturas: s.assinaturas.filter((a) => a.clienteId !== id),
             vendas: s.vendas.map((v) => (v.clienteId === id ? { ...v, clienteId: null } : v)),
             agendamentos: s.agendamentos.filter((a) => !petsRemovidos.has(a.petId)),
+            vacinas: s.vacinas.filter((v) => !petsRemovidos.has(v.petId)),
           };
         });
       },
@@ -274,6 +292,7 @@ export function AppProvider({ children }) {
           ...s,
           pets: s.pets.filter((p) => p.id !== id),
           agendamentos: s.agendamentos.filter((a) => a.petId !== id),
+          vacinas: s.vacinas.filter((v) => v.petId !== id),
         }));
       },
 
@@ -281,6 +300,27 @@ export function AppProvider({ children }) {
         const { data, error } = await supabase.from("pets").update({ observacoes }).eq("id", id).select().single();
         if (error) return setError(error.message);
         setState((s) => ({ ...s, pets: s.pets.map((p) => (p.id === id ? mapPet(data) : p)) }));
+      },
+
+      addVacina: async ({ petId, nome, dataAplicacao, proximaDose }) => {
+        const { data, error } = await supabase
+          .from("vacinas")
+          .insert({ pet_id: petId, nome, data_aplicacao: dataAplicacao, proxima_dose: proximaDose || null })
+          .select()
+          .single();
+        if (error) return setError(error.message);
+        setState((s) => {
+          const vacinas = [...s.vacinas, mapVacina(data)].sort((a, b) =>
+            (a.proximaDose || "9999").localeCompare(b.proximaDose || "9999")
+          );
+          return { ...s, vacinas };
+        });
+      },
+
+      deleteVacina: async (id) => {
+        const { error } = await supabase.from("vacinas").delete().eq("id", id);
+        if (error) return setError(error.message);
+        setState((s) => ({ ...s, vacinas: s.vacinas.filter((v) => v.id !== id) }));
       },
 
       addAgendamento: async ({ petId, servico, data, hora, status, valor }) => {
