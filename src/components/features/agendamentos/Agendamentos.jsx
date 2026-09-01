@@ -5,6 +5,7 @@ import StatusBadge from "../../common/StatusBadge";
 import WhatsAppLink from "../../common/WhatsAppLink";
 import { calcularHorariosDisponiveis } from "../../../utils/availability.js";
 import { formatBRL, formatDataBR, mensagemConfirmacao } from "../../../utils/format";
+import { precoPorPorte } from "../../../data/constants";
 
 // Um retorno de banho/tosa costuma cair em torno de um mês depois.
 const DIAS_ATE_RETORNO = 30;
@@ -73,7 +74,7 @@ export default function Agendamentos({
       data: somarDias(ag.data, DIAS_ATE_RETORNO),
       hora: "",
       status: "Agendado",
-      valor: servico?.preco ?? ag.valor,
+      valor: servico ? precoPorPorte(servico, petInfo(ag.petId)?.porte) : ag.valor,
     });
     formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
@@ -95,16 +96,21 @@ export default function Agendamentos({
     delAg(ag.id);
   }
 
+  // O preço acompanha o porte do pet, então trocar qualquer um dos dois
+  // recalcula o valor do agendamento.
   const handlePetChange = (e) => {
-    setNovoAg({ ...novoAg, petId: e.target.value });
+    const petId = e.target.value;
+    const pet = pets.find((p) => String(p.id) === String(petId));
+    const servico = servicosPadrao.find((s) => s.nome === novoAg.servico);
+    setNovoAg({ ...novoAg, petId, valor: precoPorPorte(servico, pet?.porte) });
   };
 
   const handleServicoChange = (e) => {
     const servico = servicosPadrao.find(s => s.nome === e.target.value);
-    setNovoAg({ 
-      ...novoAg, 
-      servico: e.target.value, 
-      valor: servico?.preco || 0,
+    setNovoAg({
+      ...novoAg,
+      servico: e.target.value,
+      valor: precoPorPorte(servico, getPetSelected()?.porte),
       hora: "" // Reset hora when service changes
     });
   };
@@ -124,6 +130,7 @@ export default function Agendamentos({
   const petSelected = getPetSelected();
   const servicoSelected = getServicoSelected();
   const horariosDisponiveis = getHorariosDisponiveis();
+  const valorDoServico = precoPorPorte(servicoSelected, petSelected?.porte);
 
   return (
     <div className="space-y-6">
@@ -151,6 +158,7 @@ export default function Agendamentos({
                 {petSelected && (
                   <div className="mt-2 p-2 bg-blue-50 rounded text-sm">
                     <span className="font-medium">Dono:</span> {nomeCliente(petSelected.clienteId)}
+                    <span className="text-gray-500"> · porte {(petSelected.porte || "Médio").toLowerCase()}</span>
                   </div>
                 )}
               </div>
@@ -173,7 +181,8 @@ export default function Agendamentos({
                   <div className="mt-2 p-2 bg-green-50 rounded text-sm space-y-1">
                     <div className="flex items-center gap-2">
                       <DollarSign size={16} className="text-green-600" />
-                      <span className="font-medium">Preço:</span> {formatBRL(servicoSelected.preco)}
+                      <span className="font-medium">Preço:</span> {formatBRL(valorDoServico)}
+                      {petSelected && <span className="text-gray-500">(porte {petSelected.porte?.toLowerCase()})</span>}
                     </div>
                     <div className="flex items-center gap-2">
                       <Clock size={16} className="text-green-600" />
@@ -238,7 +247,7 @@ export default function Agendamentos({
                 <div className="p-3 bg-gray-50 rounded-lg">
                   <div className="flex justify-between items-center">
                     <span className="font-medium">Valor Total:</span>
-                    <span className="text-lg font-bold text-green-600">{formatBRL(servicoSelected.preco)}</span>
+                    <span className="text-lg font-bold text-green-600">{formatBRL(valorDoServico)}</span>
                   </div>
                 </div>
               )}

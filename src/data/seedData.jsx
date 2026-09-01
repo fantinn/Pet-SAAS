@@ -26,16 +26,16 @@ export function buildSeedData() {
   ];
 
   const pets = [
-    { id: 1, nome: "Rex", especie: "Cachorro", raca: "Labrador", clienteId: 1, observacoes: "Alérgico a shampoo perfumado" },
-    { id: 2, nome: "Mia", especie: "Gato", raca: "Siamês", clienteId: 1, observacoes: "" },
-    { id: 3, nome: "Thor", especie: "Cachorro", raca: "Bulldog Francês", clienteId: 2, observacoes: "" },
-    { id: 4, nome: "Luna", especie: "Gato", raca: "Persa", clienteId: 3, observacoes: "Muito arisca" },
-    { id: 5, nome: "Bidu", especie: "Cachorro", raca: "Poodle", clienteId: 3, observacoes: "" },
-    { id: 6, nome: "Nina", especie: "Cachorro", raca: "Vira-lata", clienteId: 4, observacoes: "" },
-    { id: 7, nome: "Simba", especie: "Gato", raca: "Maine Coon", clienteId: 5, observacoes: "" },
-    { id: 8, nome: "Max", especie: "Cachorro", raca: "Golden Retriever", clienteId: 6, observacoes: "Adora água" },
-    { id: 9, nome: "Amora", especie: "Gato", raca: "SRD", clienteId: 7, observacoes: "" },
-    { id: 10, nome: "Bob", especie: "Cachorro", raca: "Beagle", clienteId: 8, observacoes: "" },
+    { id: 1, nome: "Rex", especie: "Cachorro", raca: "Labrador", porte: "Grande", clienteId: 1, observacoes: "Alérgico a shampoo perfumado" },
+    { id: 2, nome: "Mia", especie: "Gato", raca: "Siamês", porte: "Pequeno", clienteId: 1, observacoes: "" },
+    { id: 3, nome: "Thor", especie: "Cachorro", raca: "Bulldog Francês", porte: "Médio", clienteId: 2, observacoes: "" },
+    { id: 4, nome: "Luna", especie: "Gato", raca: "Persa", porte: "Pequeno", clienteId: 3, observacoes: "Muito arisca" },
+    { id: 5, nome: "Bidu", especie: "Cachorro", raca: "Poodle", porte: "Médio", clienteId: 3, observacoes: "" },
+    { id: 6, nome: "Nina", especie: "Cachorro", raca: "Vira-lata", porte: "Médio", clienteId: 4, observacoes: "" },
+    { id: 7, nome: "Simba", especie: "Gato", raca: "Maine Coon", porte: "Grande", clienteId: 5, observacoes: "" },
+    { id: 8, nome: "Max", especie: "Cachorro", raca: "Golden Retriever", porte: "Grande", clienteId: 6, observacoes: "Adora água" },
+    { id: 9, nome: "Amora", especie: "Gato", raca: "SRD", porte: "Pequeno", clienteId: 7, observacoes: "" },
+    { id: 10, nome: "Bob", especie: "Cachorro", raca: "Beagle", porte: "Médio", clienteId: 8, observacoes: "" },
   ];
 
   const servicos = [

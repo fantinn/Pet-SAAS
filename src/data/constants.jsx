@@ -7,3 +7,18 @@ export const STATUS_COR = {
 };
 
 export const ORDEM_STATUS = ["Agendado", "Concluído", "Cancelado"];
+
+// Banho em Yorkshire e em Golden não custam a mesma coisa: cada serviço tem
+// preço por porte, e o porte do pet decide qual entra no agendamento.
+export const PORTES = ["Pequeno", "Médio", "Grande"];
+
+export const CAMPO_PRECO_POR_PORTE = {
+  Pequeno: "precoPequeno",
+  Médio: "preco",
+  Grande: "precoGrande",
+};
+
+export function precoPorPorte(servico, porte) {
+  if (!servico) return 0;
+  return Number(servico[CAMPO_PRECO_POR_PORTE[porte] ?? "preco"]) || 0;
+}

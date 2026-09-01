@@ -34,8 +34,15 @@ function slugify(texto) {
 
 // --- Mapeamento DB (snake_case) <-> estado do app (camelCase) ---
 const mapCliente = (r) => ({ id: r.id, nome: r.nome, telefone: r.telefone });
-const mapPet = (r) => ({ id: r.id, nome: r.nome, especie: r.especie, raca: r.raca, clienteId: r.cliente_id, observacoes: r.observacoes });
-const mapServico = (r) => ({ id: r.id, nome: r.nome, preco: Number(r.preco), duracao: r.duracao });
+const mapPet = (r) => ({ id: r.id, nome: r.nome, especie: r.especie, raca: r.raca, porte: r.porte, clienteId: r.cliente_id, observacoes: r.observacoes });
+const mapServico = (r) => ({
+  id: r.id,
+  nome: r.nome,
+  preco: Number(r.preco),
+  precoPequeno: Number(r.preco_pequeno),
+  precoGrande: Number(r.preco_grande),
+  duracao: r.duracao,
+});
 const mapPlano = (r) => ({ id: r.id, slug: r.slug, nome: r.nome, descricao: r.descricao, preco: Number(r.preco) });
 const mapAssinatura = (r) => ({ id: r.id, clienteId: r.cliente_id, planoId: r.plano_id, dataInicio: r.data_inicio });
 const mapAgendamento = (r) => ({ id: r.id, petId: r.pet_id, servico: r.servico, data: r.data, hora: (r.hora || "").slice(0, 5), status: r.status, valor: Number(r.valor) });
@@ -244,18 +251,18 @@ export function AppProvider({ children }) {
         });
       },
 
-      addPet: async ({ nome, especie, raca, clienteId }) => {
+      addPet: async ({ nome, especie, raca, porte, clienteId }) => {
         const { data, error } = await supabase
           .from("pets")
-          .insert({ nome, especie, raca, cliente_id: clienteId, observacoes: "" })
+          .insert({ nome, especie, raca, porte, cliente_id: clienteId, observacoes: "" })
           .select()
           .single();
         if (error) return setError(error.message);
         setState((s) => ({ ...s, pets: [...s.pets, mapPet(data)] }));
       },
 
-      updatePet: async (id, { nome, especie, raca }) => {
-        const { data, error } = await supabase.from("pets").update({ nome, especie, raca }).eq("id", id).select().single();
+      updatePet: async (id, { nome, especie, raca, porte }) => {
+        const { data, error } = await supabase.from("pets").update({ nome, especie, raca, porte }).eq("id", id).select().single();
         if (error) return setError(error.message);
         setState((s) => ({ ...s, pets: s.pets.map((p) => (p.id === id ? mapPet(data) : p)) }));
       },
@@ -367,14 +374,23 @@ export function AppProvider({ children }) {
         setState((s) => ({ ...s, despesas: s.despesas.filter((d) => d.id !== id) }));
       },
 
-      addServico: async ({ nome, preco, duracao }) => {
-        const { data, error } = await supabase.from("servicos").insert({ nome, preco, duracao }).select().single();
+      addServico: async ({ nome, preco, precoPequeno, precoGrande, duracao }) => {
+        const { data, error } = await supabase
+          .from("servicos")
+          .insert({ nome, preco, preco_pequeno: precoPequeno, preco_grande: precoGrande, duracao })
+          .select()
+          .single();
         if (error) return setError(error.message);
         setState((s) => ({ ...s, servicos: [...s.servicos, mapServico(data)] }));
       },
 
-      updateServico: async (id, { nome, preco, duracao }) => {
-        const { data, error } = await supabase.from("servicos").update({ nome, preco, duracao }).eq("id", id).select().single();
+      updateServico: async (id, { nome, preco, precoPequeno, precoGrande, duracao }) => {
+        const { data, error } = await supabase
+          .from("servicos")
+          .update({ nome, preco, preco_pequeno: precoPequeno, preco_grande: precoGrande, duracao })
+          .eq("id", id)
+          .select()
+          .single();
         if (error) return setError(error.message);
         setState((s) => ({ ...s, servicos: s.servicos.map((sv) => (sv.id === id ? mapServico(data) : sv)) }));
       },
@@ -459,6 +475,7 @@ export function AppProvider({ children }) {
             nome: p.nome,
             especie: p.especie,
             raca: p.raca,
+            porte: p.porte,
             observacoes: p.observacoes,
             cliente_id: clienteIdMap[p.clienteId],
           }));

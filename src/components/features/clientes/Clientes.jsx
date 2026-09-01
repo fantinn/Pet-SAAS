@@ -3,8 +3,9 @@ import WhatsAppLink from "../../common/WhatsAppLink";
 import Button from "../../common/Button";
 import { useState } from "react";
 import { formatDataBR, formatDiaMes } from "../../../utils/format";
+import { PORTES } from "../../../data/constants";
 
-const PET_VAZIO = { nome: "", especie: "Cachorro", raca: "" };
+const PET_VAZIO = { nome: "", especie: "Cachorro", raca: "", porte: "Médio" };
 
 const EMOJI_ESPECIE = { Cachorro: "🐶", Gato: "🐱", Outro: "🐾" };
 
@@ -140,7 +141,7 @@ export default function Clientes({
 
   function iniciarEdicaoPet(pet) {
     setEditandoPetId(pet.id);
-    setPetEditando({ nome: pet.nome, especie: pet.especie, raca: pet.raca });
+    setPetEditando({ nome: pet.nome, especie: pet.especie, raca: pet.raca, porte: pet.porte || "Médio" });
   }
 
   function cancelarEdicaoPet() {
@@ -313,7 +314,7 @@ export default function Clientes({
                         <div key={pet.id} className="border rounded-lg bg-white overflow-hidden">
                           <div className="p-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                             {estaEditandoPet ? (
-                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 flex-1 sm:mr-2">
+                              <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 flex-1 sm:mr-2">
                                 <input
                                   type="text"
                                   value={petEditando.nome}
@@ -330,6 +331,16 @@ export default function Clientes({
                                   <option value="Gato">Gato</option>
                                   <option value="Outro">Outro</option>
                                 </select>
+                                <select
+                                  value={petEditando.porte}
+                                  onChange={(e) => setPetEditando({ ...petEditando, porte: e.target.value })}
+                                  className="px-2 py-1 border rounded-lg text-sm"
+                                  title="O porte define o preço do serviço"
+                                >
+                                  {PORTES.map((p) => (
+                                    <option key={p} value={p}>{p}</option>
+                                  ))}
+                                </select>
                                 <input
                                   type="text"
                                   value={petEditando.raca}
@@ -345,7 +356,7 @@ export default function Clientes({
                                   <p className="text-sm font-medium">{pet.nome}</p>
                                 </div>
                                 <p className="text-xs text-gray-500 ml-6">
-                                  {pet.especie} - {pet.raca}
+                                  {pet.especie} - {pet.raca} · porte {(pet.porte || "Médio").toLowerCase()}
                                 </p>
                                 <p className="text-xs text-gray-400 ml-6">
                                   {visita ? `Última visita: ${formatDataBR(visita.data)} · ${visita.servico}` : "Ainda não foi atendido"}
@@ -423,6 +434,16 @@ export default function Clientes({
                         <option value="Cachorro">Cachorro</option>
                         <option value="Gato">Gato</option>
                         <option value="Outro">Outro</option>
+                      </select>
+                      <select
+                        value={novoPet.porte}
+                        onChange={(e) => setNovoPet({ ...novoPet, porte: e.target.value })}
+                        className="px-3 py-2 border rounded-lg text-sm"
+                        title="O porte define o preço do serviço"
+                      >
+                        {PORTES.map((p) => (
+                          <option key={p} value={p}>Porte {p}</option>
+                        ))}
                       </select>
                       <input
                         type="text"

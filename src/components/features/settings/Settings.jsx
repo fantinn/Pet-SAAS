@@ -17,7 +17,7 @@ export default function Settings({
   onUpdateConfiguracoes,
   onLoadDemoData,
 }) {
-  const [novoServico, setNovoServico] = useState({ nome: "", preco: "", duracao: "" });
+  const [novoServico, setNovoServico] = useState({ nome: "", preco: "", precoPequeno: "", precoGrande: "", duracao: "" });
   const [novoPlano, setNovoPlano] = useState({ nome: "", descricao: "", preco: "" });
   const [horarioAbertura, setHorarioAbertura] = useState(configuracoes.horarioAbertura || 8);
   const [horarioFechamento, setHorarioFechamento] = useState(configuracoes.horarioFechamento || 18);
@@ -45,12 +45,17 @@ export default function Settings({
 
   function handleAddServico() {
     if (!novoServico.nome || !novoServico.preco || !novoServico.duracao) return;
+    // Sem preço específico de porte, todos começam iguais ao médio — melhor do
+    // que cobrar zero de um pet pequeno por esquecimento.
+    const medio = Number(novoServico.preco);
     onAddServico({
       nome: novoServico.nome,
-      preco: Number(novoServico.preco),
+      preco: medio,
+      precoPequeno: Number(novoServico.precoPequeno) || medio,
+      precoGrande: Number(novoServico.precoGrande) || medio,
       duracao: Number(novoServico.duracao)
     });
-    setNovoServico({ nome: "", preco: "", duracao: "" });
+    setNovoServico({ nome: "", preco: "", precoPequeno: "", precoGrande: "", duracao: "" });
   }
 
   function handleUpdateServico(id, campo, valor) {
@@ -172,7 +177,7 @@ export default function Settings({
         
         <div className="mb-6 p-4 bg-white rounded-lg border">
           <h4 className="font-medium mb-3">Adicionar Novo Serviço</h4>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <input
               type="text"
               placeholder="Nome do serviço"
@@ -182,18 +187,29 @@ export default function Settings({
             />
             <input
               type="number"
-              placeholder="Preço (R$)"
-              value={novoServico.preco}
-              onChange={(e) => setNovoServico({ ...novoServico, preco: e.target.value })}
-              className="px-3 py-2 border rounded-lg"
-            />
-            <input
-              type="number"
               placeholder="Duração (min)"
               value={novoServico.duracao}
               onChange={(e) => setNovoServico({ ...novoServico, duracao: e.target.value })}
               className="px-3 py-2 border rounded-lg"
             />
+          </div>
+          <div className="grid grid-cols-3 gap-3 mt-3">
+            {[
+              { campo: "precoPequeno", rotulo: "Pequeno" },
+              { campo: "preco", rotulo: "Médio" },
+              { campo: "precoGrande", rotulo: "Grande" },
+            ].map(({ campo, rotulo }) => (
+              <div key={campo}>
+                <label className="block text-xs text-gray-500 mb-1">{rotulo} (R$)</label>
+                <input
+                  type="number"
+                  placeholder={campo === "preco" ? "Obrigatório" : "= médio"}
+                  value={novoServico[campo]}
+                  onChange={(e) => setNovoServico({ ...novoServico, [campo]: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg"
+                />
+              </div>
+            ))}
           </div>
           <Button onClick={handleAddServico} variant="primary" className="mt-3">
             <Plus size={16} /> Adicionar Serviço
@@ -214,14 +230,23 @@ export default function Settings({
               </div>
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2">
-                  <DollarSign size={16} className="text-green-600 shrink-0" />
-                  <input
-                    type="number"
-                    value={valorCampo("servico", servico, "preco")}
-                    onChange={(e) => editarCampo("servico", servico, "preco", e.target.value)}
-                    onBlur={() => confirmarCampo("servico", servico, "preco", (v) => handleUpdateServico(servico.id, "preco", Number(v) || 0))}
-                    className="w-20 px-3 py-2 border rounded-lg"
-                  />
+                  <DollarSign size={16} className="text-green-600 shrink-0" title="Preço por porte" />
+                  {[
+                    { campo: "precoPequeno", sigla: "P", titulo: "Porte pequeno" },
+                    { campo: "preco", sigla: "M", titulo: "Porte médio" },
+                    { campo: "precoGrande", sigla: "G", titulo: "Porte grande" },
+                  ].map(({ campo, sigla, titulo }) => (
+                    <div key={campo} className="flex items-center gap-1" title={titulo}>
+                      <span className="text-xs text-gray-400 font-medium">{sigla}</span>
+                      <input
+                        type="number"
+                        value={valorCampo("servico", servico, campo)}
+                        onChange={(e) => editarCampo("servico", servico, campo, e.target.value)}
+                        onBlur={() => confirmarCampo("servico", servico, campo, (v) => handleUpdateServico(servico.id, campo, Number(v) || 0))}
+                        className="w-16 px-2 py-2 border rounded-lg"
+                      />
+                    </div>
+                  ))}
                 </div>
                 <div className="flex items-center gap-2">
                   <Clock size={16} className="text-blue-600 shrink-0" />
