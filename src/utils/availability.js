@@ -9,14 +9,17 @@ const FECHAMENTO_PADRAO = 18;
  * @param {number} duracaoServico - Duração do serviço em minutos
  * @param {Array} servicos - Lista de serviços para buscar duração
  * @param {Object} configuracoes - Horário de funcionamento do petshop
+ * @param {string} ignorarId - Agendamento que não deve bloquear a si mesmo (ao remarcar)
  * @returns {Array} - Lista de horários disponíveis no formato HH:MM
  */
-export function calcularHorariosDisponiveis(data, agendamentos, duracaoServico, servicos, configuracoes = {}) {
+export function calcularHorariosDisponiveis(data, agendamentos, duracaoServico, servicos, configuracoes = {}, ignorarId = null) {
   const abertura = configuracoes.horarioAbertura ?? ABERTURA_PADRAO;
   const fechamento = configuracoes.horarioFechamento ?? FECHAMENTO_PADRAO;
 
   // Filtra agendamentos do dia
-  const agendamentosDoDia = agendamentos.filter(a => a.data === data && a.status !== "Cancelado");
+  const agendamentosDoDia = agendamentos.filter(
+    a => a.data === data && a.status !== "Cancelado" && a.id !== ignorarId
+  );
 
   // Gera todos os horários possíveis do dia, respeitando o horário de funcionamento
   const horariosPossiveis = [];

@@ -290,6 +290,24 @@ export function AppProvider({ children }) {
         });
       },
 
+      // Remarcar: cliente ligar para mudar o horário é rotina, e antes só dava
+      // para apagar e refazer o agendamento do zero.
+      remarcarAgendamento: async (id, { data, hora }) => {
+        const { data: row, error } = await supabase
+          .from("agendamentos")
+          .update({ data, hora, status: "Agendado" })
+          .eq("id", id)
+          .select()
+          .single();
+        if (error) return setError(error.message);
+        setState((s) => {
+          const agendamentos = s.agendamentos
+            .map((a) => (a.id === id ? mapAgendamento(row) : a))
+            .sort((a, b) => `${a.data}${a.hora}`.localeCompare(`${b.data}${b.hora}`));
+          return { ...s, agendamentos };
+        });
+      },
+
       deleteAgendamento: async (id) => {
         const { error } = await supabase.from("agendamentos").delete().eq("id", id);
         if (error) return setError(error.message);

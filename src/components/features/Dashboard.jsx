@@ -1,6 +1,6 @@
 import StatusBadge from "../common/StatusBadge";
 import WhatsAppLink from "../common/WhatsAppLink";
-import { Dog, Clock, Check, Users, CalendarDays, TrendingUp, UserX } from "lucide-react";
+import { Dog, Clock, Check, Users, CalendarDays, TrendingUp, UserX, AlertTriangle } from "lucide-react";
 import { formatBRL, mensagemConfirmacao, mensagemReativacao } from "../../utils/format";
 
 function Metrica({ icone: Icone, label, valor, detalhe }) {
@@ -111,6 +111,14 @@ export default function Dashboard({
                       <span>{a.servico}</span>
                       <span className="font-medium text-gray-700">{formatBRL(a.valor)}</span>
                     </div>
+
+                    {/* Cuidados do pet à vista antes do atendimento começar. */}
+                    {(pet?.observacoes || "").trim() && (
+                      <p className="mt-2 flex items-start gap-1.5 text-sm text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-2 py-1.5">
+                        <AlertTriangle size={14} className="shrink-0 mt-0.5 text-amber-500" />
+                        {pet.observacoes.trim()}
+                      </p>
+                    )}
                   </div>
 
                   <div className="flex flex-col items-end gap-2 shrink-0">

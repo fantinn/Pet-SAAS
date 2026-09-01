@@ -1,9 +1,19 @@
-import { Plus, Trash2, ChevronLeft, ChevronRight, Clock, DollarSign } from "lucide-react";
+import { useRef, useState } from "react";
+import { Plus, Trash2, ChevronLeft, ChevronRight, Clock, DollarSign, CalendarClock, RotateCcw, AlertTriangle } from "lucide-react";
 import Button from "../../common/Button";
 import StatusBadge from "../../common/StatusBadge";
 import WhatsAppLink from "../../common/WhatsAppLink";
 import { calcularHorariosDisponiveis } from "../../../utils/availability.js";
 import { formatBRL, formatDataBR, mensagemConfirmacao } from "../../../utils/format";
+
+// Um retorno de banho/tosa costuma cair em torno de um mês depois.
+const DIAS_ATE_RETORNO = 30;
+
+function somarDias(dataStr, dias) {
+  const [ano, mes, dia] = dataStr.split("-").map(Number);
+  const d = new Date(ano, mes - 1, dia + dias);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 
 export default function Agendamentos({
   pets,
@@ -14,6 +24,7 @@ export default function Agendamentos({
   addAg,
   delAg,
   cicloStatus,
+  remarcarAg,
   mesAtual,
   prevMes,
   nextMes,
@@ -28,7 +39,45 @@ export default function Agendamentos({
   configuracoes
 }) {
   const agendamentosDoDia = agendamentos.filter((a) => a.data === diaSelecionado);
-  
+
+  const formRef = useRef(null);
+  const [remarcando, setRemarcando] = useState(null); // { id, data, hora }
+
+  function iniciarRemarcacao(ag) {
+    setRemarcando({ id: ag.id, data: ag.data, hora: "" });
+  }
+
+  // Ao remarcar, o próprio agendamento não pode bloquear o horário dele.
+  function horariosParaRemarcar(ag) {
+    const servico = servicosPadrao.find((s) => s.nome === ag.servico);
+    if (!servico || !remarcando?.data) return [];
+    return calcularHorariosDisponiveis(
+      remarcando.data, agendamentos, servico.duracao, servicosPadrao, configuracoes, ag.id
+    );
+  }
+
+  function salvarRemarcacao() {
+    if (!remarcando?.data || !remarcando?.hora) return;
+    remarcarAg(remarcando.id, { data: remarcando.data, hora: remarcando.hora });
+    setDiaSelecionado(remarcando.data);
+    setRemarcando(null);
+  }
+
+  // Sai do atendimento já deixando o próximo marcado: é assim que a agenda
+  // de um petshop não esvazia.
+  function agendarRetorno(ag) {
+    const servico = servicosPadrao.find((s) => s.nome === ag.servico);
+    setNovoAg({
+      petId: ag.petId,
+      servico: ag.servico,
+      data: somarDias(ag.data, DIAS_ATE_RETORNO),
+      hora: "",
+      status: "Agendado",
+      valor: servico?.preco ?? ag.valor,
+    });
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   // Helper functions for smart flow
   const getPetSelected = () => pets.find(p => String(p.id) === String(novoAg.petId));
   const getServicoSelected = () => servicosPadrao.find(s => s.nome === novoAg.servico);
@@ -81,7 +130,7 @@ export default function Agendamentos({
       <h2 className="text-xl font-semibold">Agendamentos</h2>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
+        <div ref={formRef}>
           <h3 className="font-semibold mb-3">Novo Agendamento</h3>
           {servicosPadrao && servicosPadrao.length > 0 ? (
             <div className="space-y-4">
@@ -262,33 +311,107 @@ export default function Agendamentos({
             {agendamentosDoDia.map((ag) => {
               const pet = petInfo(ag.petId);
               const cliente = clienteDoPet(ag.petId);
+              const observacoes = (pet?.observacoes || "").trim();
+              const estaRemarcando = remarcando?.id === ag.id;
+              const horariosRemarcar = estaRemarcando ? horariosParaRemarcar(ag) : [];
+
               return (
-                <div key={ag.id} className="flex items-center justify-between gap-3 p-4 bg-gray-50 rounded-lg">
-                  <div className="min-w-0">
-                    <p className="font-medium">{pet?.nome || "Pet removido"} - {ag.servico}</p>
-                    <p className="text-sm text-gray-500 truncate">
-                      {ag.hora} · {formatBRL(ag.valor)}
-                      {pet && ` · ${nomeCliente(pet.clienteId)}`}
+                <div key={ag.id} className="p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-medium">{pet?.nome || "Pet removido"} - {ag.servico}</p>
+                      <p className="text-sm text-gray-500 truncate">
+                        {ag.hora} · {formatBRL(ag.valor)}
+                        {pet && ` · ${nomeCliente(pet.clienteId)}`}
+                      </p>
+                      {ag.status === "Agendado" && cliente && (
+                        <WhatsAppLink
+                          telefone={cliente.telefone}
+                          mensagem={mensagemConfirmacao({ petNome: pet?.nome || "seu pet", servico: ag.servico, data: ag.data, hora: ag.hora })}
+                        />
+                      )}
+                    </div>
+                    <div className="flex gap-2 shrink-0">
+                      <button
+                        onClick={() => cicloStatus(ag.id)}
+                        className="px-3 py-2 rounded-lg"
+                        title="Alterar status"
+                      >
+                        <StatusBadge status={ag.status} colors={statusCor} />
+                      </button>
+                      <Button onClick={() => confirmarExclusao(ag)} variant="danger">
+                        <Trash2 size={16} />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Quem vai dar o banho precisa ver "morde ao secar" aqui, não
+                      escondido na ficha do cliente. */}
+                  {observacoes && (
+                    <p className="mt-2 flex items-start gap-1.5 text-sm text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-2 py-1.5">
+                      <AlertTriangle size={14} className="shrink-0 mt-0.5 text-amber-500" />
+                      {observacoes}
                     </p>
-                    {ag.status === "Agendado" && cliente && (
-                      <WhatsAppLink
-                        telefone={cliente.telefone}
-                        mensagem={mensagemConfirmacao({ petNome: pet?.nome || "seu pet", servico: ag.servico, data: ag.data, hora: ag.hora })}
+                  )}
+
+                  {(ag.status === "Agendado" || ag.status === "Concluído") && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {ag.status === "Agendado" && (
+                        <Button
+                          onClick={() => (estaRemarcando ? setRemarcando(null) : iniciarRemarcacao(ag))}
+                          variant="secondary"
+                          className="text-xs"
+                        >
+                          <CalendarClock size={14} /> {estaRemarcando ? "Cancelar" : "Remarcar"}
+                        </Button>
+                      )}
+                      {ag.status === "Concluído" && (
+                        <Button onClick={() => agendarRetorno(ag)} variant="secondary" className="text-xs">
+                          <RotateCcw size={14} /> Agendar retorno
+                        </Button>
+                      )}
+                    </div>
+                  )}
+
+                  {estaRemarcando && (
+                    <div className="mt-3 p-3 bg-white border rounded-lg space-y-2">
+                      <input
+                        type="date"
+                        value={remarcando.data}
+                        onChange={(e) => setRemarcando({ ...remarcando, data: e.target.value, hora: "" })}
+                        className="w-full px-3 py-2 border rounded-lg text-sm"
                       />
-                    )}
-                  </div>
-                  <div className="flex gap-2 shrink-0">
-                    <button
-                      onClick={() => cicloStatus(ag.id)}
-                      className="px-3 py-2 rounded-lg"
-                      title="Alterar status"
-                    >
-                      <StatusBadge status={ag.status} colors={statusCor} />
-                    </button>
-                    <Button onClick={() => confirmarExclusao(ag)} variant="danger">
-                      <Trash2 size={16} />
-                    </Button>
-                  </div>
+                      {horariosRemarcar.length > 0 ? (
+                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                          {horariosRemarcar.map((horario) => (
+                            <button
+                              key={horario}
+                              onClick={() => setRemarcando({ ...remarcando, hora: horario })}
+                              className={`px-2 py-1.5 border rounded-lg text-sm transition-colors ${
+                                remarcando.hora === horario
+                                  ? "bg-blue-500 text-white border-blue-500"
+                                  : "bg-white hover:bg-blue-50"
+                              }`}
+                            >
+                              {horario}
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-red-500 bg-red-50 p-2 rounded">
+                          Nenhum horário livre nesta data.
+                        </p>
+                      )}
+                      <Button
+                        onClick={salvarRemarcacao}
+                        variant="success"
+                        className="w-full text-xs"
+                        disabled={!remarcando.hora}
+                      >
+                        Confirmar novo horário
+                      </Button>
+                    </div>
+                  )}
                 </div>
               );
             })}

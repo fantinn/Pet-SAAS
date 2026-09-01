@@ -124,6 +124,10 @@ export default function PetshopSaaS() {
     actions.cicloStatusAgendamento(id);
   }
 
+  function remarcarAg(id, { data, hora }) {
+    umaVezPorVez(`remarcarAg-${id}`, () => actions.remarcarAgendamento(id, { data, hora }));
+  }
+
   function addVenda() {
     const item = novaVenda.itemTipo === "custom" ? novaVenda.itemCustom : novaVenda.itemTipo;
     if (!item || !novaVenda.valor) return;
@@ -289,6 +293,7 @@ export default function PetshopSaaS() {
             addAg={addAg}
             delAg={delAg}
             cicloStatus={cicloStatus}
+            remarcarAg={remarcarAg}
             mesAtual={mesAtual}
             prevMes={prevMes}
             nextMes={nextMes}
