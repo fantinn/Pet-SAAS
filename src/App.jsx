@@ -173,6 +173,18 @@ export default function PetshopSaaS() {
     actions.cancelAssinatura(id);
   }
 
+  function gerarMensalidades(mesRef) {
+    umaVezPorVez(`gerarMensalidades-${mesRef}`, () => actions.gerarMensalidades(mesRef));
+  }
+
+  // Quantas assinaturas ativas já têm a cobrança do mês corrente gerada.
+  const cobrancasDoMesAtual = useMemo(() => {
+    const doMes = new Set(
+      state.mensalidades.filter((m) => m.mesRef === derived.mesAtualRef).map((m) => m.assinaturaId)
+    );
+    return derived.assinaturasAtivas.filter((a) => doMes.has(a.id)).length;
+  }, [state.mensalidades, derived.mesAtualRef, derived.assinaturasAtivas]);
+
   function addDespesa() {
     if (!novaDespesa.descricao || !novaDespesa.valor) return;
     umaVezPorVez("addDespesa", () =>
@@ -255,7 +267,7 @@ export default function PetshopSaaS() {
           <Settings
             servicos={state.servicos}
             planos={state.planos}
-            assinaturas={state.assinaturas}
+            assinaturas={derived.assinaturasAtivas}
             configuracoes={state.configuracoes}
             onAddServico={actions.addServico}
             onUpdateServico={actions.updateServico}
@@ -335,13 +347,18 @@ export default function PetshopSaaS() {
         {tab === "planos" && (
           <Planos
             clientes={state.clientes}
-            assinaturas={state.assinaturas}
+            assinaturas={derived.assinaturasAtivas}
             planos={state.planos}
             clienteParaAssinar={clienteParaAssinar}
             setClienteParaAssinar={setClienteParaAssinar}
             assinarPlano={assinarPlano}
             cancelarAssinatura={cancelarAssinatura}
             nomeCliente={derived.nomeCliente}
+            mensalidadesEmAberto={derived.mensalidadesEmAberto}
+            mesAtualRef={derived.mesAtualRef}
+            temCobrancaDoMes={cobrancasDoMesAtual}
+            gerarMensalidades={gerarMensalidades}
+            alternarPagamento={actions.alternarPagamentoMensalidade}
           />
         )}
 

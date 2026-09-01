@@ -19,6 +19,7 @@ const ESTADO_VAZIO = {
   servicos: [],
   planos: [],
   vacinas: [],
+  mensalidades: [],
   configuracoes: { horarioAbertura: 8, horarioFechamento: 18 },
 };
 
@@ -45,7 +46,8 @@ const mapServico = (r) => ({
   duracao: r.duracao,
 });
 const mapPlano = (r) => ({ id: r.id, slug: r.slug, nome: r.nome, descricao: r.descricao, preco: Number(r.preco) });
-const mapAssinatura = (r) => ({ id: r.id, clienteId: r.cliente_id, planoId: r.plano_id, dataInicio: r.data_inicio });
+const mapAssinatura = (r) => ({ id: r.id, clienteId: r.cliente_id, planoId: r.plano_id, dataInicio: r.data_inicio, canceladaEm: r.cancelada_em });
+const mapMensalidade = (r) => ({ id: r.id, assinaturaId: r.assinatura_id, mesRef: r.mes_ref, valor: Number(r.valor), status: r.status, dataPagamento: r.data_pagamento });
 const mapAgendamento = (r) => ({ id: r.id, petId: r.pet_id, servico: r.servico, data: r.data, hora: (r.hora || "").slice(0, 5), status: r.status, valor: Number(r.valor) });
 const mapVenda = (r) => ({ id: r.id, clienteId: r.cliente_id, item: r.item, qtd: r.qtd, valor: Number(r.valor), formaPagamento: r.forma_pagamento, data: (r.created_at || "").slice(0, 10) });
 const mapDespesa = (r) => ({ id: r.id, descricao: r.descricao, valor: Number(r.valor), data: r.data });
@@ -69,7 +71,7 @@ export function AppProvider({ children }) {
     setLoading(true);
     setError("");
 
-    const [clientes, pets, servicos, planos, assinaturas, agendamentos, vendas, despesas, vacinas, config] = await Promise.all([
+    const [clientes, pets, servicos, planos, assinaturas, agendamentos, vendas, despesas, vacinas, mensalidades, config] = await Promise.all([
       supabase.from("clientes").select("*").order("nome"),
       supabase.from("pets").select("*").order("nome"),
       supabase.from("servicos").select("*").order("nome"),
@@ -79,10 +81,11 @@ export function AppProvider({ children }) {
       supabase.from("vendas").select("*").order("created_at", { ascending: false }),
       supabase.from("despesas").select("*").order("created_at", { ascending: false }),
       supabase.from("vacinas").select("*").order("proxima_dose"),
+      supabase.from("mensalidades").select("*").order("mes_ref"),
       supabase.from("configuracoes").select("*").maybeSingle(),
     ]);
 
-    const primeiroErro = [clientes, pets, servicos, planos, assinaturas, agendamentos, vendas, despesas, vacinas, config].find(
+    const primeiroErro = [clientes, pets, servicos, planos, assinaturas, agendamentos, vendas, despesas, vacinas, mensalidades, config].find(
       (r) => r.error
     );
     if (primeiroErro) {
@@ -101,6 +104,7 @@ export function AppProvider({ children }) {
       vendas: vendas.data.map(mapVenda),
       despesas: despesas.data.map(mapDespesa),
       vacinas: vacinas.data.map(mapVacina),
+      mensalidades: mensalidades.data.map(mapMensalidade),
       configuracoes: config.data
         ? { horarioAbertura: config.data.horario_abertura, horarioFechamento: config.data.horario_fechamento }
         : { horarioAbertura: 8, horarioFechamento: 18 },
@@ -137,11 +141,16 @@ export function AppProvider({ children }) {
       const vendasDoMes = state.vendas.filter((v) => doMes(v.data));
       const totalVendas = vendasDoMes.reduce((s, v) => s + v.qtd * v.valor, 0);
 
-      // Uma assinatura gera receita recorrente em todo mês a partir do início.
-      const fimDoMes = `${mesRef}-31`;
-      const totalPlanos = state.assinaturas
-        .filter((a) => (a.dataInicio || "") <= fimDoMes)
-        .reduce((s, a) => s + (state.planos.find((p) => p.id === a.planoId)?.preco || 0), 0);
+      // Só entra como faturamento a mensalidade efetivamente recebida. Antes
+      // toda assinatura ativa somava o valor cheio todo mês, paga ou não, e o
+      // passado se reescrevia ao cancelar uma assinatura ou reajustar um plano.
+      const mensalidadesDoMes = state.mensalidades.filter((m) => m.mesRef === mesRef);
+      const totalPlanos = mensalidadesDoMes
+        .filter((m) => m.status === "Pago")
+        .reduce((s, m) => s + m.valor, 0);
+      const totalPlanosAReceber = mensalidadesDoMes
+        .filter((m) => m.status === "Pendente")
+        .reduce((s, m) => s + m.valor, 0);
 
       const despesasDoMes = state.despesas.filter((d) => doMes(d.data));
       const totalDespesas = despesasDoMes.reduce((s, d) => s + d.valor, 0);
@@ -159,6 +168,7 @@ export function AppProvider({ children }) {
         totalServicos,
         totalVendas,
         totalPlanos,
+        totalPlanosAReceber,
         totalEntradas,
         totalDespesas,
         saldo: totalEntradas - totalDespesas,
@@ -220,6 +230,26 @@ export function AppProvider({ children }) {
       .filter(Boolean)
       .sort((a, b) => b.dias - a.dias);
 
+    // Assinatura cancelada continua no banco pelo histórico, mas some das telas.
+    const assinaturasAtivas = state.assinaturas.filter((a) => !a.canceladaEm);
+
+    // Cobranças em aberto do mês corrente e dos anteriores: é a lista de
+    // inadimplência que antes simplesmente não existia.
+    const mensalidadesEmAberto = state.mensalidades
+      .filter((m) => m.status === "Pendente" && m.mesRef <= mesAtualRef)
+      .map((m) => {
+        const assinatura = state.assinaturas.find((a) => a.id === m.assinaturaId);
+        if (!assinatura) return null;
+        return {
+          mensalidade: m,
+          cliente: state.clientes.find((c) => c.id === assinatura.clienteId),
+          plano: state.planos.find((p) => p.id === assinatura.planoId),
+          atrasada: m.mesRef < mesAtualRef,
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.mensalidade.mesRef.localeCompare(b.mensalidade.mesRef));
+
     return {
       hoje,
       hojeStr,
@@ -234,6 +264,8 @@ export function AppProvider({ children }) {
       contaNoDia,
       clientesParaReativar,
       vacinasAVencer,
+      assinaturasAtivas,
+      mensalidadesEmAberto,
     };
   }, [state]);
 
@@ -396,10 +428,66 @@ export function AppProvider({ children }) {
         setState((s) => ({ ...s, assinaturas: [...s.assinaturas, mapAssinatura(data)] }));
       },
 
+      // Cancelar marca a data de saída em vez de apagar: as mensalidades já
+      // pagas continuam contando no mês em que foram recebidas.
       cancelAssinatura: async (id) => {
-        const { error } = await supabase.from("assinaturas").delete().eq("id", id);
+        const hoje = new Date().toISOString().slice(0, 10);
+        const { data, error } = await supabase
+          .from("assinaturas")
+          .update({ cancelada_em: hoje })
+          .eq("id", id)
+          .select()
+          .single();
         if (error) return setError(error.message);
-        setState((s) => ({ ...s, assinaturas: s.assinaturas.filter((a) => a.id !== id) }));
+        setState((s) => ({
+          ...s,
+          assinaturas: s.assinaturas.map((a) => (a.id === id ? mapAssinatura(data) : a)),
+          // Cobrança ainda em aberto de assinatura cancelada deixa de fazer sentido.
+          mensalidades: s.mensalidades.filter((m) => !(m.assinaturaId === id && m.status === "Pendente")),
+        }));
+        await supabase.from("mensalidades").delete().eq("assinatura_id", id).eq("status", "Pendente");
+      },
+
+      // Gera a cobrança do mês para cada assinatura ativa que ainda não tem uma.
+      gerarMensalidades: async (mesRef) => {
+        const { assinaturas, planos, mensalidades } = stateRef.current;
+        const jaTem = new Set(mensalidades.filter((m) => m.mesRef === mesRef).map((m) => m.assinaturaId));
+        const fimDoMes = `${mesRef}-31`;
+
+        const novas = assinaturas
+          .filter((a) => !jaTem.has(a.id) && (a.dataInicio || "") <= fimDoMes)
+          .filter((a) => !a.canceladaEm || a.canceladaEm.slice(0, 7) >= mesRef)
+          .map((a) => ({
+            assinatura_id: a.id,
+            mes_ref: mesRef,
+            valor: planos.find((p) => p.id === a.planoId)?.preco || 0,
+            status: "Pendente",
+          }));
+        if (novas.length === 0) return;
+
+        const { data, error } = await supabase.from("mensalidades").insert(novas).select();
+        if (error) return setError(error.message);
+        setState((s) => ({ ...s, mensalidades: [...s.mensalidades, ...data.map(mapMensalidade)] }));
+      },
+
+      alternarPagamentoMensalidade: async (id) => {
+        const atual = stateRef.current.mensalidades.find((m) => m.id === id);
+        if (!atual) return;
+        const virandoPago = atual.status === "Pendente";
+        const { data, error } = await supabase
+          .from("mensalidades")
+          .update({
+            status: virandoPago ? "Pago" : "Pendente",
+            data_pagamento: virandoPago ? new Date().toISOString().slice(0, 10) : null,
+          })
+          .eq("id", id)
+          .select()
+          .single();
+        if (error) return setError(error.message);
+        setState((s) => ({
+          ...s,
+          mensalidades: s.mensalidades.map((m) => (m.id === id ? mapMensalidade(data) : m)),
+        }));
       },
 
       addDespesa: async ({ descricao, valor, data }) => {

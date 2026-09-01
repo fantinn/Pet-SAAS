@@ -50,6 +50,12 @@ export function mensagemConfirmacao({ petNome, servico, data, hora }) {
   return `Olá! Passando para confirmar o agendamento do(a) ${petNome} - ${servico} no dia ${formatDataBR(data)} às ${hora}. Qualquer coisa, é só chamar!`;
 }
 
+// Cobrança de mensalidade: firme no valor, gentil no tom.
+export function mensagemCobranca({ plano, mesRef, valor, atrasada }) {
+  const quando = atrasada ? `referente a ${nomeDoMes(mesRef)} está em aberto` : `de ${nomeDoMes(mesRef)} está disponível`;
+  return `Olá! A mensalidade do plano ${plano} ${quando}, no valor de ${formatBRL(valor)}. Qualquer dúvida é só chamar!`;
+}
+
 // Texto pronto para avisar que a vacina do pet está vencendo (ou venceu).
 export function mensagemVacina({ petNome, vacina, proximaDose, dias }) {
   const quando =

@@ -14,7 +14,7 @@ export default function Financeiro({
   onVoltarMesAtual,
   ehMesAtual,
 }) {
-  const { totalEntradas, totalDespesas, saldo, totalServicos, totalVendas, totalPlanos, despesasDoMes, qtdServicos, ticketMedio } = resumo;
+  const { totalEntradas, totalDespesas, saldo, totalServicos, totalVendas, totalPlanos, totalPlanosAReceber, despesasDoMes, qtdServicos, ticketMedio } = resumo;
 
   function confirmarExclusao(despesa) {
     if (!window.confirm(`Excluir a despesa "${despesa.descricao}" de ${formatBRL(despesa.valor)}? Não dá para desfazer.`)) return;
@@ -74,6 +74,12 @@ export default function Financeiro({
               </div>
             ))}
           </div>
+          {/* Mensalidade só vira faturamento quando é recebida; o resto fica aqui. */}
+          {totalPlanosAReceber > 0 && (
+            <p className="mt-2 pt-2 border-t border-green-200 text-xs text-amber-700">
+              + {formatBRL(totalPlanosAReceber)} em mensalidades a receber
+            </p>
+          )}
         </div>
 
         <div className="bg-red-50 p-4 rounded-lg">
