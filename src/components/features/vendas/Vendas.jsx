@@ -6,6 +6,7 @@ export default function Vendas({
   clientes,
   vendas,
   servicosPadrao,
+  produtos = [],
   formasPagamento,
   novaVenda,
   setNovaVenda,
@@ -14,7 +15,25 @@ export default function Vendas({
   totalVendasMes,
   nomeCliente
 }) {
-  const itemVenda = novaVenda.itemTipo === "custom" ? novaVenda.itemCustom : novaVenda.itemTipo;
+  const produtoSelecionado = novaVenda.itemTipo.startsWith("produto:")
+    ? produtos.find((p) => `produto:${p.id}` === novaVenda.itemTipo)
+    : null;
+  const itemVenda = produtoSelecionado
+    ? produtoSelecionado.nome
+    : novaVenda.itemTipo === "custom"
+    ? novaVenda.itemCustom
+    : novaVenda.itemTipo;
+  const acimaDoEstoque = produtoSelecionado && (Number(novaVenda.qtd) || 1) > produtoSelecionado.quantidade;
+
+  function escolherItem(valor) {
+    const produto = valor.startsWith("produto:") ? produtos.find((p) => `produto:${p.id}` === valor) : null;
+    const servico = servicosPadrao.find((s) => s.nome === valor);
+    setNovaVenda({
+      ...novaVenda,
+      itemTipo: valor,
+      valor: produto?.precoVenda || servico?.preco || novaVenda.valor,
+    });
+  }
 
   function confirmarExclusao(venda) {
     const total = formatBRL(venda.qtd * venda.valor);
@@ -43,16 +62,24 @@ export default function Vendas({
               </select>
               <select
                 value={novaVenda.itemTipo}
-                onChange={(e) => {
-                  const servico = servicosPadrao.find(s => s.nome === e.target.value);
-                  setNovaVenda({ ...novaVenda, itemTipo: e.target.value, valor: servico?.preco || novaVenda.valor });
-                }}
+                onChange={(e) => escolherItem(e.target.value)}
                 className="w-full px-4 py-2 border rounded-lg"
               >
-                <option value="">Selecione o serviço</option>
-                {servicosPadrao.map((s) => (
-                  <option key={s.nome} value={s.nome}>{s.nome}</option>
-                ))}
+                <option value="">Selecione o serviço ou produto</option>
+                <optgroup label="Serviços">
+                  {servicosPadrao.map((s) => (
+                    <option key={s.nome} value={s.nome}>{s.nome}</option>
+                  ))}
+                </optgroup>
+                {produtos.length > 0 && (
+                  <optgroup label="Produtos (dá baixa no estoque)">
+                    {produtos.map((p) => (
+                      <option key={p.id} value={`produto:${p.id}`}>
+                        {p.nome} — {p.quantidade} em estoque
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
                 <option value="custom">Customizado...</option>
               </select>
               {novaVenda.itemTipo === "custom" && (
@@ -71,6 +98,11 @@ export default function Vendas({
                 onChange={(e) => setNovaVenda({ ...novaVenda, qtd: e.target.value })}
                 className="w-full px-4 py-2 border rounded-lg"
               />
+              {acimaDoEstoque && (
+                <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                  Só há {produtoSelecionado.quantidade} em estoque. A venda será registrada e o estoque ficará zerado.
+                </p>
+              )}
               <input
                 type="number"
                 placeholder="Valor unitário"

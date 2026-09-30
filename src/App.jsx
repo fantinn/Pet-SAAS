@@ -4,7 +4,7 @@ import { FORMAS_PAGAMENTO, STATUS_COR } from "./data/constants";
 import { formatDate, deslocarMes } from "./utils/format";
 
 // Layout components
-import { Menu } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import Sidebar from "./components/layout/Sidebar";
 
 // Feature components
@@ -15,6 +15,8 @@ import Vendas from "./components/features/vendas/Vendas";
 import Planos from "./components/features/planos/Planos";
 import Financeiro from "./components/features/financeiro/Financeiro";
 import Settings from "./components/features/settings/Settings";
+import Estoque from "./components/features/estoque/Estoque";
+import Relatorios from "./components/features/relatorios/Relatorios";
 
 // Custom hooks
 import { useCalendar } from "./hooks/useCalendar";
@@ -26,7 +28,9 @@ const ABAS = {
   agendamentos: "Agendamentos",
   clientes: "Clientes",
   vendas: "Vendas",
+  estoque: "Estoque",
   financeiro: "Financeiro",
+  relatorios: "Relatórios",
   planos: "Planos",
   settings: "Configurações",
 };
@@ -37,7 +41,7 @@ function abaDaUrl() {
 }
 
 export default function PetshopSaaS() {
-  const { state, derived, actions, loading, error } = useApp();
+  const { state, derived, actions, loading, error, clearError } = useApp();
 
   // Estado local de UI (não persiste)
   const [tab, setTab] = useState(abaDaUrl);
@@ -133,7 +137,10 @@ export default function PetshopSaaS() {
   }
 
   function addVenda() {
-    const item = novaVenda.itemTipo === "custom" ? novaVenda.itemCustom : novaVenda.itemTipo;
+    // "produto:<id>" é um item do estoque; a venda dá baixa na quantidade.
+    const produtoId = novaVenda.itemTipo.startsWith("produto:") ? novaVenda.itemTipo.slice("produto:".length) : null;
+    const produto = produtoId ? state.produtos.find((p) => p.id === produtoId) : null;
+    const item = produto ? produto.nome : novaVenda.itemTipo === "custom" ? novaVenda.itemCustom : novaVenda.itemTipo;
     if (!item || !novaVenda.valor) return;
     umaVezPorVez("addVenda", () =>
       actions.addVenda({
@@ -142,6 +149,7 @@ export default function PetshopSaaS() {
         qtd: Number(novaVenda.qtd) || 1,
         valor: Number(novaVenda.valor),
         formaPagamento: novaVenda.formaPagamento,
+        produtoId: produto?.id,
       })
     );
     setNovaVenda({
@@ -236,8 +244,11 @@ export default function PetshopSaaS() {
 
       <main className="flex-1 bg-white lg:border-l p-4 sm:p-6 overflow-auto">
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
-            Erro ao sincronizar com o banco: {error}
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm flex items-start justify-between gap-3">
+            <span>Erro ao sincronizar com o banco: {error}</span>
+            <button onClick={clearError} className="shrink-0 p-0.5 hover:bg-red-100 rounded" title="Dispensar" aria-label="Dispensar erro">
+              <X size={16} />
+            </button>
           </div>
         )}
 
@@ -258,8 +269,10 @@ export default function PetshopSaaS() {
             clienteDoPet={derived.clienteDoPet}
             clientesParaReativar={derived.clientesParaReativar}
             vacinasAVencer={derived.vacinasAVencer}
+            produtosBaixoEstoque={derived.produtosBaixoEstoque}
             onCicloStatus={cicloStatus}
             onAbrirCliente={abrirCliente}
+            onAbrirEstoque={() => setTab("estoque")}
           />
         )}
 
@@ -334,6 +347,7 @@ export default function PetshopSaaS() {
             clientes={state.clientes}
             vendas={state.vendas}
             servicosPadrao={state.servicos}
+            produtos={state.produtos}
             formasPagamento={FORMAS_PAGAMENTO}
             novaVenda={novaVenda}
             setNovaVenda={setNovaVenda}
@@ -343,6 +357,19 @@ export default function PetshopSaaS() {
             nomeCliente={derived.nomeCliente}
           />
         )}
+
+        {tab === "estoque" && (
+          <Estoque
+            produtos={state.produtos}
+            disponivel={state.estoqueDisponivel}
+            onAdd={actions.addProduto}
+            onUpdate={actions.updateProduto}
+            onAjustar={actions.ajustarEstoque}
+            onDelete={actions.deleteProduto}
+          />
+        )}
+
+        {tab === "relatorios" && <Relatorios state={state} derived={derived} />}
 
         {tab === "planos" && (
           <Planos

@@ -1,6 +1,6 @@
 import StatusBadge from "../common/StatusBadge";
 import WhatsAppLink from "../common/WhatsAppLink";
-import { Dog, Clock, Check, Users, CalendarDays, TrendingUp, UserX, AlertTriangle, Syringe } from "lucide-react";
+import { Dog, Clock, Check, Users, CalendarDays, TrendingUp, UserX, AlertTriangle, Syringe, Package } from "lucide-react";
 import { formatBRL, formatDataBR, mensagemConfirmacao, mensagemReativacao, mensagemVacina } from "../../utils/format";
 
 function Metrica({ icone: Icone, label, valor, detalhe }) {
@@ -28,8 +28,10 @@ export default function Dashboard({
   clienteDoPet,
   clientesParaReativar,
   vacinasAVencer,
+  produtosBaixoEstoque = [],
   onCicloStatus,
   onAbrirCliente,
+  onAbrirEstoque,
 }) {
 
   const pendentesHoje = agendamentosHoje.filter((a) => a.status === "Agendado").length;
@@ -144,6 +146,39 @@ export default function Dashboard({
               </div>
             );
           })}
+        </div>
+      )}
+
+      {produtosBaixoEstoque.length > 0 && (
+        <div className="mt-8">
+          <p className="text-xs text-gray-400 mb-3">
+            Estoque · {produtosBaixoEstoque.length} {produtosBaixoEstoque.length === 1 ? "produto para repor" : "produtos para repor"}
+          </p>
+          <div className="grid gap-2">
+            {produtosBaixoEstoque.slice(0, 5).map((p) => (
+              <div
+                key={p.id}
+                className={`flex items-center justify-between gap-3 p-3 rounded-lg border ${
+                  p.quantidade === 0 ? "bg-red-50 border-red-100" : "bg-amber-50 border-amber-100"
+                }`}
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <Package size={16} className={p.quantidade === 0 ? "text-red-500" : "text-amber-500"} />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-800 truncate">{p.nome}</p>
+                    <p className="text-xs text-gray-500">
+                      {p.quantidade === 0 ? "acabou" : `${p.quantidade} em estoque`} · mínimo {p.estoqueMinimo}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {produtosBaixoEstoque.length > 5 && (
+              <button onClick={onAbrirEstoque} className="text-xs text-blue-600 hover:underline text-left">
+                ver todos os {produtosBaixoEstoque.length} no Estoque
+              </button>
+            )}
+          </div>
         </div>
       )}
 

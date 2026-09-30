@@ -20,6 +20,10 @@ const ESTADO_VAZIO = {
   planos: [],
   vacinas: [],
   mensalidades: [],
+  produtos: [],
+  // false enquanto a migration de estoque não foi aplicada no banco: o resto do
+  // app continua funcionando e a aba Estoque explica o que falta.
+  estoqueDisponivel: true,
   configuracoes: { horarioAbertura: 8, horarioFechamento: 18 },
 };
 
@@ -52,6 +56,16 @@ const mapAgendamento = (r) => ({ id: r.id, petId: r.pet_id, servico: r.servico, 
 const mapVenda = (r) => ({ id: r.id, clienteId: r.cliente_id, item: r.item, qtd: r.qtd, valor: Number(r.valor), formaPagamento: r.forma_pagamento, data: (r.created_at || "").slice(0, 10) });
 const mapDespesa = (r) => ({ id: r.id, descricao: r.descricao, valor: Number(r.valor), data: r.data });
 const mapVacina = (r) => ({ id: r.id, petId: r.pet_id, nome: r.nome, dataAplicacao: r.data_aplicacao, proximaDose: r.proxima_dose });
+const mapProduto = (r) => ({
+  id: r.id,
+  nome: r.nome,
+  categoria: r.categoria || "",
+  quantidade: r.quantidade,
+  estoqueMinimo: r.estoque_minimo,
+  precoCusto: Number(r.preco_custo),
+  precoVenda: Number(r.preco_venda),
+});
+const ordenarProdutos = (lista) => [...lista].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 
 export function AppProvider({ children }) {
   const { user } = useAuth();
@@ -71,7 +85,7 @@ export function AppProvider({ children }) {
     setLoading(true);
     setError("");
 
-    const [clientes, pets, servicos, planos, assinaturas, agendamentos, vendas, despesas, vacinas, mensalidades, config] = await Promise.all([
+    const [clientes, pets, servicos, planos, assinaturas, agendamentos, vendas, despesas, vacinas, mensalidades, config, produtos] = await Promise.all([
       supabase.from("clientes").select("*").order("nome"),
       supabase.from("pets").select("*").order("nome"),
       supabase.from("servicos").select("*").order("nome"),
@@ -83,6 +97,7 @@ export function AppProvider({ children }) {
       supabase.from("vacinas").select("*").order("proxima_dose"),
       supabase.from("mensalidades").select("*").order("mes_ref"),
       supabase.from("configuracoes").select("*").maybeSingle(),
+      supabase.from("produtos").select("*").order("nome"),
     ]);
 
     const primeiroErro = [clientes, pets, servicos, planos, assinaturas, agendamentos, vendas, despesas, vacinas, mensalidades, config].find(
@@ -105,6 +120,10 @@ export function AppProvider({ children }) {
       despesas: despesas.data.map(mapDespesa),
       vacinas: vacinas.data.map(mapVacina),
       mensalidades: mensalidades.data.map(mapMensalidade),
+      // O erro de "produtos" não entra no primeiroErro de propósito: sem a
+      // tabela, só o Estoque fica indisponível — o app inteiro não deve cair.
+      produtos: produtos.error ? [] : produtos.data.map(mapProduto),
+      estoqueDisponivel: !produtos.error,
       configuracoes: config.data
         ? { horarioAbertura: config.data.horario_abertura, horarioFechamento: config.data.horario_fechamento }
         : { horarioAbertura: 8, horarioFechamento: 18 },
@@ -250,9 +269,15 @@ export function AppProvider({ children }) {
       .filter(Boolean)
       .sort((a, b) => a.mensalidade.mesRef.localeCompare(b.mensalidade.mesRef));
 
+    // Produto no mínimo (ou abaixo) precisa de reposição — vem primeiro o que já zerou.
+    const produtosBaixoEstoque = state.produtos
+      .filter((p) => p.quantidade <= p.estoqueMinimo)
+      .sort((a, b) => a.quantidade - b.quantidade);
+
     return {
       hoje,
       hojeStr,
+      produtosBaixoEstoque,
       mesAtualRef,
       nomeCliente,
       petInfo,
@@ -402,7 +427,8 @@ export function AppProvider({ children }) {
         setState((s) => ({ ...s, agendamentos: s.agendamentos.map((a) => (a.id === id ? mapAgendamento(data) : a)) }));
       },
 
-      addVenda: async ({ clienteId, item, qtd, valor, formaPagamento }) => {
+      // Se a venda é de um produto do estoque, dá baixa na quantidade vendida.
+      addVenda: async ({ clienteId, item, qtd, valor, formaPagamento, produtoId }) => {
         const { data, error } = await supabase
           .from("vendas")
           .insert({ cliente_id: clienteId || null, item, qtd, valor, forma_pagamento: formaPagamento })
@@ -410,6 +436,68 @@ export function AppProvider({ children }) {
           .single();
         if (error) return setError(error.message);
         setState((s) => ({ ...s, vendas: [mapVenda(data), ...s.vendas] }));
+
+        const produto = produtoId && stateRef.current.produtos.find((p) => p.id === produtoId);
+        if (!produto) return;
+        const novaQuantidade = Math.max(0, produto.quantidade - qtd);
+        const { data: row, error: erroEstoque } = await supabase
+          .from("produtos")
+          .update({ quantidade: novaQuantidade })
+          .eq("id", produtoId)
+          .select()
+          .single();
+        if (erroEstoque) return setError(`Venda registrada, mas a baixa no estoque falhou: ${erroEstoque.message}`);
+        setState((s) => ({ ...s, produtos: s.produtos.map((p) => (p.id === produtoId ? mapProduto(row) : p)) }));
+      },
+
+      addProduto: async ({ nome, categoria, quantidade, estoqueMinimo, precoCusto, precoVenda }) => {
+        const { data, error } = await supabase
+          .from("produtos")
+          .insert({
+            nome,
+            categoria,
+            quantidade,
+            estoque_minimo: estoqueMinimo,
+            preco_custo: precoCusto,
+            preco_venda: precoVenda,
+          })
+          .select()
+          .single();
+        if (error) return setError(error.message);
+        setState((s) => ({ ...s, produtos: ordenarProdutos([...s.produtos, mapProduto(data)]) }));
+      },
+
+      updateProduto: async (id, { nome, categoria, estoqueMinimo, precoCusto, precoVenda }) => {
+        const { data, error } = await supabase
+          .from("produtos")
+          .update({
+            nome,
+            categoria,
+            estoque_minimo: estoqueMinimo,
+            preco_custo: precoCusto,
+            preco_venda: precoVenda,
+          })
+          .eq("id", id)
+          .select()
+          .single();
+        if (error) return setError(error.message);
+        setState((s) => ({ ...s, produtos: ordenarProdutos(s.produtos.map((p) => (p.id === id ? mapProduto(data) : p))) }));
+      },
+
+      // Entrada (delta > 0, chegou mercadoria) ou saída (delta < 0, perda/uso interno).
+      ajustarEstoque: async (id, delta) => {
+        const atual = stateRef.current.produtos.find((p) => p.id === id);
+        if (!atual) return;
+        const quantidade = Math.max(0, atual.quantidade + delta);
+        const { data, error } = await supabase.from("produtos").update({ quantidade }).eq("id", id).select().single();
+        if (error) return setError(error.message);
+        setState((s) => ({ ...s, produtos: s.produtos.map((p) => (p.id === id ? mapProduto(data) : p)) }));
+      },
+
+      deleteProduto: async (id) => {
+        const { error } = await supabase.from("produtos").delete().eq("id", id);
+        if (error) return setError(error.message);
+        setState((s) => ({ ...s, produtos: s.produtos.filter((p) => p.id !== id) }));
       },
 
       deleteVenda: async (id) => {
@@ -662,7 +750,7 @@ export function AppProvider({ children }) {
   );
 
   const value = useMemo(
-    () => ({ state, derived, actions, loading, error, refetch: fetchAll }),
+    () => ({ state, derived, actions, loading, error, clearError: () => setError(""), refetch: fetchAll }),
     [state, derived, actions, loading, error, fetchAll]
   );
 

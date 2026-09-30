@@ -100,7 +100,7 @@ export default function Sidebar({ tab, setTab, menuAberto, onFecharMenu }) {
                 {section.items.map((item) => {
                   const Icon = item.icon;
                   const isActive = tab === item.id;
-                  const isDisabled = ["estoque", "relatorios", "assinatura", "usuarios", "permissoes"].includes(item.id);
+                  const isDisabled = ["assinatura", "usuarios", "permissoes"].includes(item.id);
 
                   return (
                     <li key={item.id}>

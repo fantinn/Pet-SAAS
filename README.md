@@ -1,146 +1,65 @@
 # Petshop SaaS
 
-Sistema de gestão para petshop com arquitetura moderna e escalável usando React + Context API + localStorage.
+Sistema de gestão para petshop: agenda, clientes e pets, vendas, estoque, planos recorrentes, financeiro e relatórios.
+Front-end em React + Vite + Tailwind; dados e login no Supabase (cada petshop só enxerga os próprios dados via RLS).
 
 ## Funcionalidades
 
-### Dashboard
-- Visão geral do negócio
-- Métricas financeiras (entradas, despesas, saldo)
-- Agendamentos do dia
-- Vendas por forma de pagamento
+- **Dashboard** — agenda do dia, faturamento do mês, vacinas vencendo, clientes sem retorno (com mensagem pronta de WhatsApp) e produtos para repor.
+- **Agendamentos** — calendário mensal, controle de status, remarcação, preço por porte do pet e horário de funcionamento.
+- **Clientes e pets** — cadastro, busca, observações de cuidado, carteira de vacinas e link direto para WhatsApp.
+- **Vendas** — serviços, produtos do estoque (com baixa automática) ou itens customizados; forma de pagamento.
+- **Estoque** — produtos com custo/venda, estoque mínimo, ajuste rápido de quantidade e alertas de reposição.
+- **Planos** — assinaturas recorrentes, geração de mensalidades, controle de pagamento e inadimplência.
+- **Financeiro** — entradas (serviços, vendas, planos recebidos), despesas e saldo por mês.
+- **Relatórios** — entradas x despesas por mês (3/6/12 meses), ticket médio, taxa de cancelamento, rankings de serviços, itens e clientes, dias mais movimentados e exportação em CSV (Excel).
+- **Configurações** — serviços, planos, horários e dados de demonstração.
 
-### Clientes
-- Cadastro de clientes (nome, telefone)
-- Busca de clientes
-- Exclusão de clientes
-- Link direto para WhatsApp
+Ainda marcados como "Em breve" no menu: Assinatura, Usuários e Permissões.
 
-### Pets
-- Cadastro de pets (nome, espécie, raça, cliente)
-- Busca de pets
-- Observações por pet
-- Exclusão de pets
+## Estrutura
 
-### Agendamentos
-- Agendamento de serviços (banho, tosa, veterinário, vacina)
-- Controle de status (Agendado, Concluído, Cancelado)
-- Visualização em calendário mensal
-- Filtro por dia específico
-
-### Vendas
-- Registro de vendas
-- Itens customizáveis ou pré-definidos
-- Controle de forma de pagamento (Pix, Cartão, Dinheiro)
-- Histórico de vendas
-
-### Planos e Assinaturas
-- Planos recorrentes (Básico, Plus, Premium)
-- Associação de clientes a planos
-- Cancelamento de assinaturas
-
-### Financeiro
-- Registro de despesas
-- Balanço financeiro
-- Controle de entradas e saídas
-
-## Arquitetura
-
-O projeto foi refatorado para uma arquitetura mais robusta e escalável:
-
-### Estrutura de Arquivos
 ```
 src/
 ├── components/
-│   ├── common/           # Componentes reutilizáveis
-│   │   ├── Button.jsx
-│   │   ├── Input.jsx
-│   │   ├── StatusBadge.jsx
-│   │   └── WhatsAppLink.jsx
-│   ├── features/         # Componentes por funcionalidade
-│   │   ├── Dashboard.jsx
-│   │   ├── clientes/Clientes.jsx
-│   │   ├── pets/Pets.jsx
-│   │   ├── agendamentos/Agendamentos.jsx
-│   │   ├── vendas/Vendas.jsx
-│   │   ├── planos/Planos.jsx
-│   │   └── financeiro/Financeiro.jsx
-│   └── layout/           # Componentes de layout
-│       └── Sidebar.jsx   # Sidebar recolhível
+│   ├── common/            # Button, Input, StatusBadge, WhatsAppLink
+│   ├── features/          # uma pasta por tela (agendamentos, clientes, estoque, relatorios...)
+│   └── layout/Sidebar.jsx
 ├── context/
-│   ├── AppProvider.jsx    # Provider global com Context API
-│   └── appReducer.jsx     # Reducer central para gerenciamento de estado
-├── data/
-│   └── constants.jsx      # Constantes e dados estáticos
-├── hooks/
-│   └── useCalendar.jsx   # Custom hook para lógica de calendário
-├── services/
-│   └── storageService.jsx # Serviço de persistência (localStorage)
+│   ├── AuthProvider.jsx   # sessão Supabase
+│   └── AppProvider.jsx    # estado global, ações e dados derivados
 ├── utils/
-│   └── format.jsx         # Funções utilitárias de formatação
-├── App.jsx                # Componente principal
-└── main.jsx              # Entry point
+│   ├── format.jsx         # datas, moeda, mensagens de WhatsApp
+│   ├── relatorios.js      # cálculos dos relatórios
+│   └── csv.js             # exportação para Excel
+supabase/
+├── functions/whatsapp-webhook/
+└── migrations/            # SQL a aplicar no banco
 ```
 
-### Vantagens da Nova Arquitetura
+## Como rodar
 
-✅ **Persistência de Dados** - Dados salvos automaticamente no localStorage
-✅ **Gerenciamento Centralizado** - useReducer + Context API para estado global
-✅ **Separação de Responsabilidades** - Lógica de negócio separada da UI
-✅ **Escalabilidade** - Fácil adicionar novos recursos e componentes
-✅ **Manutenibilidade** - Código organizado e fácil de manter
-✅ **Testabilidade** - Componentes isolados são mais fáceis de testar
-✅ **Sidebar Recolhível** - Navegação escalável com categorias organizadas
-
-### Navegação por Categorias
-
-- **PRINCIPAL**: Dashboard
-- **OPERAÇÃO**: Agendamentos, Clientes, Pets, Vendas, Estoque
-- **GESTÃO**: Financeiro, Relatórios, Planos
-- **SISTEMA**: Configurações, Assinatura, Usuários, Permissões
-
-### Fluxo de Dados
-
-1. **UI Componentes** → Disparam ações via `actions`
-2. **Actions** → Dispatch para o reducer
-3. **Reducer** → Atualiza o estado centralizado
-4. **useEffect** → Persiste automaticamente no localStorage
-5. **Context API** → Distribui o estado para todos os componentes
-
-## Tecnologias
-
-- React 18
-- Vite
-- Tailwind CSS
-- Lucide React (ícones)
-- Context API (gerenciamento de estado)
-- localStorage (persistência)
-
-## Como usar
-
-1. Instale as dependências:
 ```bash
 npm install
-```
-
-2. Inicie o servidor de desenvolvimento:
-```bash
+cp .env.local.example .env.local   # preencha VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY
 npm run dev
 ```
 
-3. Acesse no navegador: http://localhost:5173
+Acesse http://localhost:5173.
+
+### Banco de dados
+
+O Estoque depende da tabela `produtos`. Rode `supabase/migrations/20260930_produtos_estoque.sql` no SQL Editor do
+Supabase. Sem ela o restante do sistema funciona normalmente e a aba Estoque avisa o que falta.
 
 ## Comandos
 
-- `npm run dev` - Inicia servidor de desenvolvimento
-- `npm run build` - Build para produção
-- `npm run preview` - Preview do build de produção
+- `npm run dev` — servidor de desenvolvimento
+- `npm run build` — build de produção
+- `npm run preview` — preview do build
 
-## Próximas Melhorias
+## Próximas melhorias
 
-- [ ] Adicionar roteamento (React Router)
-- [ ] Implementar autenticação
-- [ ] Migrar para banco de dados real
-- [ ] Adicionar testes unitários
-- [ ] Implementar funcionalidades pendentes (Estoque, Relatórios, Configurações, etc.)
-- [ ] Adicionar validações mais robustas
+- [ ] Testes automatizados (utilitários de relatório e disponibilidade de horários)
+- [ ] Assinatura do SaaS, múltiplos usuários e permissões
+- [ ] Baixa de estoque ao concluir serviços que consomem produtos
