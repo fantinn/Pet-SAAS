@@ -1,4 +1,4 @@
-import { Plus, Trash2, MessageCircle, Edit2, Dog, Phone, User, ChevronDown, ChevronUp, CalendarClock, Syringe } from "lucide-react";
+import { Plus, Trash2, Edit2, Dog, Phone, User, ChevronDown, ChevronUp, CalendarClock, Syringe } from "lucide-react";
 import WhatsAppLink from "../../common/WhatsAppLink";
 import Button from "../../common/Button";
 import { useState } from "react";
@@ -37,9 +37,9 @@ export default function Clientes({
     return vacinas.filter((v) => v.petId === petId);
   }
 
-  function salvarVacina(petId) {
+  async function salvarVacina(petId) {
     if (!novaVacina.nome.trim()) return;
-    addVacina({ petId, ...novaVacina, nome: novaVacina.nome.trim() });
+    if (!await addVacina({ petId, ...novaVacina, nome: novaVacina.nome.trim() })) return;
     setNovaVacina({ nome: "", dataAplicacao: hojeStr, proximaDose: "" });
   }
 
@@ -75,14 +75,11 @@ export default function Clientes({
     return obsRascunho[pet.id] ?? pet.observacoes ?? "";
   }
 
-  function salvarObs(pet) {
+  async function salvarObs(pet) {
     const rascunho = obsRascunho[pet.id];
-    setObsRascunho((r) => {
-      const { [pet.id]: _, ...resto } = r;
-      return resto;
-    });
     if (rascunho === undefined || rascunho === (pet.observacoes ?? "")) return;
-    atualizarObs(pet.id, rascunho);
+    if (!await atualizarObs(pet.id, rascunho)) return;
+    setObsRascunho(r => { const next = { ...r }; delete next[pet.id]; return next; });
     setObsSalva(pet.id);
     setTimeout(() => setObsSalva((atual) => (atual === pet.id ? null : atual)), 2000);
   }
@@ -113,14 +110,14 @@ export default function Clientes({
       qtdAgendamentos && plural(qtdAgendamentos, "agendamento", "agendamentos"),
     ].filter(Boolean);
 
-    const detalhe = perdas.length ? ` Isso também apaga ${perdas.join(" e ")}.` : "";
+    const detalhe = perdas.length ? ` Há ${perdas.join(" e ")} vinculados. A exclusão será bloqueada para preservar o histórico.` : "";
     if (!window.confirm(`Excluir ${cliente.nome}?${detalhe} Não dá para desfazer.`)) return;
     delCliente(cliente.id);
   }
 
   function confirmarExclusaoPet(pet) {
     const qtd = agendamentos.filter((a) => a.petId === pet.id).length;
-    const detalhe = qtd ? ` Isso também apaga ${plural(qtd, "agendamento", "agendamentos")}.` : "";
+    const detalhe = qtd ? ` Há ${plural(qtd, "agendamento", "agendamentos")} vinculados. A exclusão será bloqueada.` : "";
     if (!window.confirm(`Excluir ${pet.nome}?${detalhe} Não dá para desfazer.`)) return;
     delPet(pet.id);
   }
@@ -135,9 +132,9 @@ export default function Clientes({
     setClienteEditando({ nome: "", telefone: "" });
   }
 
-  function salvarEdicao() {
+  async function salvarEdicao() {
     if (!clienteEditando.nome) return;
-    updateCliente(editandoId, clienteEditando);
+    if (!await updateCliente(editandoId, clienteEditando)) return;
     cancelarEdicao();
   }
 
@@ -152,9 +149,9 @@ export default function Clientes({
     setPetDetalheId(null);
   }
 
-  function handleAddPet(clienteId) {
+  async function handleAddPet(clienteId) {
     if (!novoPet.nome) return;
-    addPet({ ...novoPet, clienteId });
+    if (!await addPet({ ...novoPet, clienteId })) return;
     setNovoPet(PET_VAZIO);
   }
 
@@ -168,9 +165,9 @@ export default function Clientes({
     setPetEditando(PET_VAZIO);
   }
 
-  function salvarEdicaoPet(petId) {
+  async function salvarEdicaoPet(petId) {
     if (!petEditando.nome) return;
-    updatePet(petId, petEditando);
+    if (!await updatePet(petId, petEditando)) return;
     cancelarEdicaoPet();
   }
 

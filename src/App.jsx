@@ -1,7 +1,9 @@
+import { useWorkspace } from "./context/WorkspaceProvider.jsx";
+import Equipe from "./components/features/settings/Equipe.jsx";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "./context/AppProvider";
 import { FORMAS_PAGAMENTO, STATUS_COR } from "./data/constants";
-import { formatDate, deslocarMes } from "./utils/format";
+import { hojePetshop, deslocarMes } from "./utils/format";
 
 // Layout components
 import { Menu, X } from "lucide-react";
@@ -33,6 +35,8 @@ const ABAS = {
   relatorios: "Relatórios",
   planos: "Planos",
   settings: "Configurações",
+  equipe: "Equipe",
+  assinatura: "Assinatura do SaaS",
 };
 
 function abaDaUrl() {
@@ -41,7 +45,9 @@ function abaDaUrl() {
 }
 
 export default function PetshopSaaS() {
-  const { state, derived, actions, loading, error, clearError } = useApp();
+  const { state, derived, actions, loading, error, clearError, refetch } = useApp();
+  const { manager, workspace } = useWorkspace();
+  const vendaRequest = useRef(crypto.randomUUID());
 
   // Estado local de UI (não persiste)
   const [tab, setTab] = useState(abaDaUrl);
@@ -81,7 +87,7 @@ export default function PetshopSaaS() {
 
   const { mesAtual, diaSelecionado, setDiaSelecionado, diasDoMes, prevMes, nextMes } = useCalendar();
   const [clienteParaAssinar, setClienteParaAssinar] = useState("");
-  const [novaDespesa, setNovaDespesa] = useState({ descricao: "", valor: "", data: formatDate(new Date()) });
+  const [novaDespesa, setNovaDespesa] = useState({ descricao: "", valor: "", data: hojePetshop() });
 
   // Mês em foco no Financeiro (começa no mês corrente)
   const [mesFinanceiro, setMesFinanceiro] = useState(derived.mesAtualRef);
@@ -93,57 +99,58 @@ export default function PetshopSaaS() {
   // Evita duplicar registros no banco quando o usuário clica/toca duas vezes
   // rápido (comum no celular) enquanto a chamada ao Supabase ainda está em voo.
   const travasEmAndamento = useRef(new Set());
-  function umaVezPorVez(chave, fn) {
+  async function umaVezPorVez(chave, fn) {
     if (travasEmAndamento.current.has(chave)) return;
     travasEmAndamento.current.add(chave);
-    Promise.resolve(fn()).finally(() => travasEmAndamento.current.delete(chave));
+    try { return await fn(); } finally { travasEmAndamento.current.delete(chave); }
   }
 
   // Handlers
-  function addCliente() {
+  async function addCliente() {
     if (!novoCliente.nome) return;
-    umaVezPorVez("addCliente", () => actions.addCliente(novoCliente));
+    if (!await umaVezPorVez("addCliente", () => actions.addCliente(novoCliente))) return;
     setNovoCliente({ nome: "", telefone: "" });
   }
 
   function updateCliente(id, novosDados) {
-    actions.updateCliente(id, novosDados);
+    return actions.updateCliente(id, novosDados);
   }
 
   function delCliente(id) {
-    actions.deleteCliente(id);
+    return actions.deleteCliente(id);
   }
 
-  function addAg() {
+  async function addAg() {
     if (!novoAg.petId || !novoAg.data || !novoAg.hora) return;
-    umaVezPorVez("addAg", () => actions.addAgendamento(novoAg));
+    if (!await umaVezPorVez("addAg", () => actions.addAgendamento(novoAg))) return;
     setNovoAg({ petId: "", servico: "", data: "", hora: "", status: "Agendado", valor: 0 });
   }
 
   function delAg(id) {
-    actions.deleteAgendamento(id);
+    return actions.deleteAgendamento(id);
   }
 
   function cicloStatus(id) {
-    actions.cicloStatusAgendamento(id);
+    return actions.cicloStatusAgendamento(id);
   }
 
   function addVacina(dados) {
-    umaVezPorVez("addVacina", () => actions.addVacina(dados));
+    return umaVezPorVez("addVacina", () => actions.addVacina(dados));
   }
 
   function remarcarAg(id, { data, hora }) {
-    umaVezPorVez(`remarcarAg-${id}`, () => actions.remarcarAgendamento(id, { data, hora }));
+    return umaVezPorVez(`remarcarAg-${id}`, () => actions.remarcarAgendamento(id, { data, hora }));
   }
 
-  function addVenda() {
+  async function addVenda() {
     // "produto:<id>" é um item do estoque; a venda dá baixa na quantidade.
     const produtoId = novaVenda.itemTipo.startsWith("produto:") ? novaVenda.itemTipo.slice("produto:".length) : null;
     const produto = produtoId ? state.produtos.find((p) => p.id === produtoId) : null;
     const item = produto ? produto.nome : novaVenda.itemTipo === "custom" ? novaVenda.itemCustom : novaVenda.itemTipo;
     if (!item || !novaVenda.valor) return;
-    umaVezPorVez("addVenda", () =>
+    const ok = await umaVezPorVez("addVenda", () =>
       actions.addVenda({
+        requestId: vendaRequest.current,
         clienteId: novaVenda.clienteId,
         item,
         qtd: Number(novaVenda.qtd) || 1,
@@ -152,6 +159,8 @@ export default function PetshopSaaS() {
         produtoId: produto?.id,
       })
     );
+    if (!ok) return;
+    vendaRequest.current = crypto.randomUUID();
     setNovaVenda({
       clienteId: "",
       itemTipo: "",
@@ -163,26 +172,26 @@ export default function PetshopSaaS() {
   }
 
   function delVenda(id) {
-    actions.deleteVenda(id);
+    return actions.deleteVenda(id);
   }
 
   function assinarPlano(planoId) {
     if (!clienteParaAssinar) return;
-    umaVezPorVez(`assinarPlano-${planoId}`, () =>
+    return umaVezPorVez(`assinarPlano-${planoId}`, () =>
       actions.addAssinatura({
         clienteId: clienteParaAssinar,
         planoId,
-        dataInicio: formatDate(new Date()),
+        dataInicio: hojePetshop(),
       })
     );
   }
 
   function cancelarAssinatura(id) {
-    actions.cancelAssinatura(id);
+    return actions.cancelAssinatura(id);
   }
 
   function gerarMensalidades(mesRef) {
-    umaVezPorVez(`gerarMensalidades-${mesRef}`, () => actions.gerarMensalidades(mesRef));
+    return umaVezPorVez(`gerarMensalidades-${mesRef}`, () => actions.gerarMensalidades(mesRef));
   }
 
   // Quantas assinaturas ativas já têm a cobrança do mês corrente gerada.
@@ -193,20 +202,20 @@ export default function PetshopSaaS() {
     return derived.assinaturasAtivas.filter((a) => doMes.has(a.id)).length;
   }, [state.mensalidades, derived.mesAtualRef, derived.assinaturasAtivas]);
 
-  function addDespesa() {
+  async function addDespesa() {
     if (!novaDespesa.descricao || !novaDespesa.valor) return;
-    umaVezPorVez("addDespesa", () =>
+    const ok = await umaVezPorVez("addDespesa", () =>
       actions.addDespesa({
         descricao: novaDespesa.descricao,
         valor: Number(novaDespesa.valor),
         data: novaDespesa.data,
       })
     );
-    setNovaDespesa({ descricao: "", valor: "", data: formatDate(new Date()) });
+    if (ok) setNovaDespesa({ descricao: "", valor: "", data: hojePetshop() });
   }
 
   function delDespesa(id) {
-    actions.deleteDespesa(id);
+    return actions.deleteDespesa(id);
   }
 
   function abrirCliente(cliente) {
@@ -244,8 +253,8 @@ export default function PetshopSaaS() {
 
       <main className="flex-1 bg-white lg:border-l p-4 sm:p-6 overflow-auto">
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm flex items-start justify-between gap-3">
-            <span>Erro ao sincronizar com o banco: {error}</span>
+          <div role="alert" className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm flex items-start justify-between gap-3">
+            <span>{error}</span><button className="underline" onClick={refetch}>Tentar novamente</button>
             <button onClick={clearError} className="shrink-0 p-0.5 hover:bg-red-100 rounded" title="Dispensar" aria-label="Dispensar erro">
               <X size={16} />
             </button>
@@ -254,8 +263,13 @@ export default function PetshopSaaS() {
 
         {loading ? (
           <p className="text-gray-500">Carregando...</p>
+        ) : !state.ready ? (
+          <p>Não foi possível carregar o petshop. Use “Tentar novamente” acima antes de continuar.</p>
         ) : (
           <>
+        {!manager && ["settings","financeiro","relatorios","planos","equipe","assinatura"].includes(tab) && <p>Esta área é restrita à gestão.</p>}
+        {tab === "equipe" && manager && <Equipe />}
+        {tab === "assinatura" && manager && <section className="space-y-3"><h2 className="text-xl font-semibold">Assinatura do SaaS</h2><p>Status: {workspace.acesso}. Limite: {workspace.limite_membros} membros.</p><p>A cobrança online está desabilitada neste piloto. Os planos de clientes do petshop são gerenciados na aba Planos.</p></section>}
         {tab === "dashboard" && (
           <Dashboard
             clientes={state.clientes}
@@ -276,7 +290,7 @@ export default function PetshopSaaS() {
           />
         )}
 
-        {tab === "settings" && (
+        {tab === "settings" && manager && (
           <Settings
             servicos={state.servicos}
             planos={state.planos}
@@ -289,7 +303,6 @@ export default function PetshopSaaS() {
             onUpdatePlano={actions.updatePlano}
             onDeletePlano={actions.deletePlano}
             onUpdateConfiguracoes={actions.updateConfiguracoes}
-            onLoadDemoData={actions.loadDemoData}
           />
         )}
 
@@ -369,9 +382,9 @@ export default function PetshopSaaS() {
           />
         )}
 
-        {tab === "relatorios" && <Relatorios state={state} derived={derived} />}
+        {tab === "relatorios" && manager && <Relatorios state={state} derived={derived} />}
 
-        {tab === "planos" && (
+        {tab === "planos" && manager && (
           <Planos
             clientes={state.clientes}
             assinaturas={derived.assinaturasAtivas}
@@ -389,7 +402,7 @@ export default function PetshopSaaS() {
           />
         )}
 
-        {tab === "financeiro" && (
+        {tab === "financeiro" && manager && (
           <Financeiro
             novaDespesa={novaDespesa}
             setNovaDespesa={setNovaDespesa}

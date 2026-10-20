@@ -24,7 +24,7 @@ export default function Dashboard({
   resumoMes,
   statusCor,
   petInfo,
-  nomeCliente,
+
   clienteDoPet,
   clientesParaReativar,
   vacinasAVencer,

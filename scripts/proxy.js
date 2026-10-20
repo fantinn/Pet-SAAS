@@ -15,11 +15,11 @@ const server = http.createServer((req, res) => {
   proxyReq.on('error', () => res.end())
 })
 
-server.on('upgrade', (req, socket, head) => {
+server.on('upgrade', (req, socket, _head) => {
   const proxyReq = http.request({
     host: '127.0.0.1', port: TARGET_PORT, path: req.url, method: req.method, headers: req.headers,
   })
-  proxyReq.on('upgrade', (proxyRes, proxySocket, proxyHead) => {
+  proxyReq.on('upgrade', (proxyRes, proxySocket, _proxyHead) => {
     socket.write(
       `HTTP/1.1 101 Switching Protocols\r\n` +
       Object.entries(proxyRes.headers).map(([k, v]) => `${k}: ${v}`).join('\r\n') +

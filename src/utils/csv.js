@@ -2,7 +2,8 @@
 const SEPARADOR = ";";
 
 function escapar(valor) {
-  const texto = valor == null ? "" : String(valor);
+  let texto = valor == null ? "" : String(valor);
+  if (/^[\s]*[=+@-]/.test(texto) || /^[\t\r\n]/.test(texto)) texto = "'" + texto;
   return /[";\n\r]/.test(texto) ? `"${texto.replace(/"/g, '""')}"` : texto;
 }
 

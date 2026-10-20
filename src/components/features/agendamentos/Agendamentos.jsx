@@ -51,15 +51,15 @@ export default function Agendamentos({
   // Ao remarcar, o próprio agendamento não pode bloquear o horário dele.
   function horariosParaRemarcar(ag) {
     const servico = servicosPadrao.find((s) => s.nome === ag.servico);
-    if (!servico || !remarcando?.data) return [];
+    if (!remarcando?.data) return [];
     return calcularHorariosDisponiveis(
-      remarcando.data, agendamentos, servico.duracao, servicosPadrao, configuracoes, ag.id
+      remarcando.data, agendamentos, ag.duracao ?? servico?.duracao ?? 60, servicosPadrao, configuracoes, ag.id
     );
   }
 
-  function salvarRemarcacao() {
+  async function salvarRemarcacao() {
     if (!remarcando?.data || !remarcando?.hora) return;
-    remarcarAg(remarcando.id, { data: remarcando.data, hora: remarcando.hora });
+    if (!await remarcarAg(remarcando.id, { data: remarcando.data, hora: remarcando.hora })) return;
     setDiaSelecionado(remarcando.data);
     setRemarcando(null);
   }
@@ -92,7 +92,7 @@ export default function Agendamentos({
   function confirmarExclusao(ag) {
     const pet = petInfo(ag.petId);
     const alvo = `${pet?.nome ? `${pet.nome} - ` : ""}${ag.servico} às ${ag.hora}`;
-    if (!window.confirm(`Excluir o agendamento de ${alvo}? Não dá para desfazer.`)) return;
+    if (!window.confirm(`Cancelar o agendamento de ${alvo}? O histórico será mantido.`)) return;
     delAg(ag.id);
   }
 

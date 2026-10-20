@@ -2,9 +2,10 @@ import { useAuth } from "./context/AuthProvider.jsx";
 import { AppProvider } from "./context/AppProvider.jsx";
 import Login from "./components/auth/Login.jsx";
 import App from "./App.jsx";
+import WorkspaceProvider from "./context/WorkspaceProvider.jsx";
 
 export default function Root() {
-  const { loading, user } = useAuth();
+  const { loading, user, recovery } = useAuth();
 
   if (loading) {
     return (
@@ -14,11 +15,11 @@ export default function Root() {
     );
   }
 
-  if (!user) return <Login />;
+  if (!user || recovery) return <Login />;
 
   return (
-    <AppProvider>
+    <WorkspaceProvider key={user.id}><AppProvider>
       <App />
-    </AppProvider>
+    </AppProvider></WorkspaceProvider>
   );
 }

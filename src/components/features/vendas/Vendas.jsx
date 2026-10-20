@@ -5,7 +5,6 @@ import { formatBRL, formatDataBR } from "../../../utils/format";
 export default function Vendas({
   clientes,
   vendas,
-  servicosPadrao,
   produtos = [],
   formasPagamento,
   novaVenda,
@@ -27,28 +26,28 @@ export default function Vendas({
 
   function escolherItem(valor) {
     const produto = valor.startsWith("produto:") ? produtos.find((p) => `produto:${p.id}` === valor) : null;
-    const servico = servicosPadrao.find((s) => s.nome === valor);
     setNovaVenda({
       ...novaVenda,
       itemTipo: valor,
-      valor: produto?.precoVenda || servico?.preco || novaVenda.valor,
+      valor: produto?.precoVenda ?? novaVenda.valor,
     });
   }
 
   function confirmarExclusao(venda) {
     const total = formatBRL(venda.qtd * venda.valor);
-    if (!window.confirm(`Excluir a venda "${venda.item}" de ${total}? Não dá para desfazer.`)) return;
-    delVenda(venda.id);
+    if (!window.confirm(`Estornar a venda "${venda.item}" de ${total}? O histórico será mantido e os produtos serão devolvidos ao estoque.`)) return;
+    return delVenda(venda.id);
   }
 
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold">Vendas</h2>
+      <p className="text-sm text-gray-600">Serviços agendados entram no financeiro ao concluir o atendimento. Não registre esses serviços novamente como venda avulsa.</p>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <h3 className="font-semibold mb-3">Nova Venda</h3>
-          {servicosPadrao.length > 0 ? (
+          {(
             <div className="space-y-3">
               <select
                 value={novaVenda.clienteId}
@@ -65,12 +64,7 @@ export default function Vendas({
                 onChange={(e) => escolherItem(e.target.value)}
                 className="w-full px-4 py-2 border rounded-lg"
               >
-                <option value="">Selecione o serviço ou produto</option>
-                <optgroup label="Serviços">
-                  {servicosPadrao.map((s) => (
-                    <option key={s.nome} value={s.nome}>{s.nome}</option>
-                  ))}
-                </optgroup>
+                <option value="">Selecione o produto ou item avulso</option>
                 {produtos.length > 0 && (
                   <optgroup label="Produtos (dá baixa no estoque)">
                     {produtos.map((p) => (
@@ -100,7 +94,7 @@ export default function Vendas({
               />
               {acimaDoEstoque && (
                 <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                  Só há {produtoSelecionado.quantidade} em estoque. A venda será registrada e o estoque ficará zerado.
+                  Só há {produtoSelecionado.quantidade} em estoque. Reduza a quantidade para registrar a venda.
                 </p>
               )}
               <input
@@ -119,15 +113,12 @@ export default function Vendas({
                   <option key={forma} value={forma}>{forma}</option>
                 ))}
               </select>
-              <Button onClick={addVenda} variant="primary" className="w-full" disabled={!itemVenda || !novaVenda.valor}>
+              <Button onClick={addVenda} variant="primary" className="w-full" disabled={acimaDoEstoque || !itemVenda || Number(novaVenda.valor) <= 0 || !Number.isInteger(Number(novaVenda.qtd)) || Number(novaVenda.qtd) <= 0}>
                 <Plus size={16} /> Registrar Venda
               </Button>
             </div>
-          ) : (
-            <p className="text-gray-500 text-center py-4 bg-gray-50 rounded">
-              Nenhum serviço cadastrado. Vá em Configurações para adicionar serviços.
-            </p>
           )}
+
         </div>
 
         <div>

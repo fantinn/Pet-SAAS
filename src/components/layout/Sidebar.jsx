@@ -1,8 +1,9 @@
+import { useWorkspace } from "../../context/WorkspaceProvider.jsx";
 import { useState } from "react";
 import {
   LayoutDashboard, Calendar, Users, ShoppingCart,
   Package, Wallet, BarChart3, Tag, Settings,
-  CreditCard, UserCog, Shield, ChevronLeft, ChevronRight, LogOut, X
+  CreditCard, UserCog, ChevronLeft, ChevronRight, LogOut, X
 } from "lucide-react";
 import { useAuth } from "../../context/AuthProvider.jsx";
 
@@ -35,8 +36,7 @@ const MENU_ITEMS = [
     items: [
       { id: "settings", label: "Configurações", icon: Settings },
       { id: "assinatura", label: "Assinatura", icon: CreditCard },
-      { id: "usuarios", label: "Usuários", icon: UserCog },
-      { id: "permissoes", label: "Permissões", icon: Shield },
+      { id: "equipe", label: "Equipe e permissões", icon: UserCog },
     ],
   },
 ];
@@ -44,6 +44,7 @@ const MENU_ITEMS = [
 export default function Sidebar({ tab, setTab, menuAberto, onFecharMenu }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { user, signOut } = useAuth();
+  const { manager } = useWorkspace();
   const inicial = (user?.email || "?").charAt(0).toUpperCase();
 
   // No celular o menu vira uma gaveta sobreposta: uma sidebar fixa de 256px
@@ -97,10 +98,10 @@ export default function Sidebar({ tab, setTab, menuAberto, onFecharMenu }) {
                 {section.category}
               </p>
               <ul className="space-y-1">
-                {section.items.map((item) => {
+                {section.items.filter(item => manager || ["dashboard","agendamentos","clientes","vendas","estoque"].includes(item.id)).map((item) => {
                   const Icon = item.icon;
                   const isActive = tab === item.id;
-                  const isDisabled = ["assinatura", "usuarios", "permissoes"].includes(item.id);
+                  const isDisabled = false;
 
                   return (
                     <li key={item.id}>

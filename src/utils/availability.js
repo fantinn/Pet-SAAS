@@ -13,6 +13,7 @@ const FECHAMENTO_PADRAO = 18;
  * @returns {Array} - Lista de horários disponíveis no formato HH:MM
  */
 export function calcularHorariosDisponiveis(data, agendamentos, duracaoServico, servicos, configuracoes = {}, ignorarId = null) {
+  if (!Number.isInteger(duracaoServico) || duracaoServico <= 0) return [];
   const abertura = configuracoes.horarioAbertura ?? ABERTURA_PADRAO;
   const fechamento = configuracoes.horarioFechamento ?? FECHAMENTO_PADRAO;
 
@@ -59,7 +60,7 @@ function temConflito(horario, duracao, agendamentosDoDia, servicos) {
     
     // Encontra a duração do serviço agendado
     const agServico = servicos.find(s => s.nome === ag.servico);
-    const agDuracao = agServico ? agServico.duracao : 60;
+    const agDuracao = ag.duracao ?? (agServico ? agServico.duracao : 60);
     const agFimMinutos = agInicioMinutos + agDuracao;
     
     // Verifica sobreposição

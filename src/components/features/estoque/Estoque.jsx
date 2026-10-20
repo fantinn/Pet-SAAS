@@ -79,7 +79,7 @@ export default function Estoque({ produtos, disponivel, onAdd, onUpdate, onAjust
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function salvar() {
+  async function salvar() {
     if (!form.nome.trim()) return;
     const dados = {
       nome: form.nome.trim(),
@@ -89,9 +89,9 @@ export default function Estoque({ produtos, disponivel, onAdd, onUpdate, onAjust
       precoVenda: Math.max(0, Number(form.precoVenda) || 0),
     };
     if (editandoId) {
-      onUpdate(editandoId, dados);
+      if (!await onUpdate(editandoId, dados)) return;
     } else {
-      onAdd({ ...dados, quantidade: Math.max(0, parseInt(form.quantidade, 10) || 0) });
+      if (!await onAdd({ ...dados, quantidade: Math.max(0, parseInt(form.quantidade, 10) || 0) })) return;
     }
     limpar();
   }

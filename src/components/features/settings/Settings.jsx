@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { Plus, Trash2, Clock, DollarSign, Settings as SettingsIcon, Database } from "lucide-react";
+import { Plus, Trash2, Clock, DollarSign, Settings as SettingsIcon } from "lucide-react";
 import Button from "../../common/Button";
-import { formatBRL } from "../../../utils/format";
 
 export default function Settings({
   servicos,
@@ -15,7 +14,6 @@ export default function Settings({
   onUpdatePlano,
   onDeletePlano,
   onUpdateConfiguracoes,
-  onLoadDemoData,
 }) {
   const [novoServico, setNovoServico] = useState({ nome: "", preco: "", precoPequeno: "", precoGrande: "", duracao: "" });
   const [novoPlano, setNovoPlano] = useState({ nome: "", descricao: "", preco: "" });
@@ -32,57 +30,56 @@ export default function Settings({
   const editarCampo = (tipo, item, campo, valor) =>
     setRascunhos((r) => ({ ...r, [`${tipo}:${item.id}:${campo}`]: valor }));
 
-  function confirmarCampo(tipo, item, campo, salvar) {
+  async function confirmarCampo(tipo, item, campo, salvar) {
     const chave = `${tipo}:${item.id}:${campo}`;
     const rascunho = rascunhos[chave];
-    setRascunhos((r) => {
-      const { [chave]: _, ...resto } = r;
-      return resto;
-    });
     if (rascunho === undefined || String(rascunho) === String(item[campo] ?? "")) return;
-    salvar(rascunho);
+    if (await salvar(rascunho)) setRascunhos((r) => {
+      const next = { ...r }; delete next[chave]; return next;
+    });
   }
 
-  function handleAddServico() {
+  async function handleAddServico() {
     if (!novoServico.nome || !novoServico.preco || !novoServico.duracao) return;
     // Sem preço específico de porte, todos começam iguais ao médio — melhor do
     // que cobrar zero de um pet pequeno por esquecimento.
     const medio = Number(novoServico.preco);
-    onAddServico({
+    const ok = await onAddServico({
       nome: novoServico.nome,
       preco: medio,
       precoPequeno: Number(novoServico.precoPequeno) || medio,
       precoGrande: Number(novoServico.precoGrande) || medio,
       duracao: Number(novoServico.duracao)
     });
-    setNovoServico({ nome: "", preco: "", precoPequeno: "", precoGrande: "", duracao: "" });
+    if (ok) setNovoServico({ nome: "", preco: "", precoPequeno: "", precoGrande: "", duracao: "" });
   }
 
   function handleUpdateServico(id, campo, valor) {
     const servico = servicos.find(s => s.id === id);
-    onUpdateServico(id, { ...servico, [campo]: valor });
+    return onUpdateServico(id, { ...servico, [campo]: valor });
   }
 
-  function handleAddPlano() {
+  async function handleAddPlano() {
     if (!novoPlano.nome || !novoPlano.descricao || !novoPlano.preco) return;
-    onAddPlano({
+    const ok = await onAddPlano({
       nome: novoPlano.nome,
       descricao: novoPlano.descricao,
       preco: Number(novoPlano.preco)
     });
-    setNovoPlano({ nome: "", descricao: "", preco: "" });
+    if (ok) setNovoPlano({ nome: "", descricao: "", preco: "" });
   }
 
   function handleUpdatePlano(id, campo, valor) {
     const plano = planos.find(p => p.id === id);
-    onUpdatePlano(id, { ...plano, [campo]: valor });
+    return onUpdatePlano(id, { ...plano, [campo]: valor });
   }
 
   async function handleSaveConfiguracoes() {
-    await onUpdateConfiguracoes({
+    const ok = await onUpdateConfiguracoes({
       horarioAbertura: Number(horarioAbertura),
       horarioFechamento: Number(horarioFechamento)
     });
+    if (!ok) return;
     setHorarioSalvo(true);
     setTimeout(() => setHorarioSalvo(false), 2500);
   }
@@ -95,17 +92,10 @@ export default function Settings({
   function confirmarExclusaoPlano(plano) {
     const ativas = assinaturas.filter((a) => a.planoId === plano.id).length;
     const detalhe = ativas
-      ? ` Isso cancela ${ativas} assinatura${ativas === 1 ? "" : "s"} e tira ${formatBRL(ativas * plano.preco)}/mês do faturamento.`
+      ? ` Há ${ativas} assinatura(s) vinculada(s); a exclusão será bloqueada para preservar o histórico.`
       : "";
     if (!window.confirm(`Excluir o plano "${plano.nome}"?${detalhe} Não dá para desfazer.`)) return;
     onDeletePlano(plano.id);
-  }
-
-  function handleLoadSeedData() {
-    if (!window.confirm("Isso vai substituir todos os dados atuais (clientes, pets, vendas, etc) pelos dados de demonstração. Continuar?")) {
-      return;
-    }
-    onLoadDemoData();
   }
 
   return (
@@ -113,20 +103,6 @@ export default function Settings({
       <div className="flex items-center gap-3">
         <SettingsIcon size={24} />
         <h2 className="text-xl font-semibold">Configurações</h2>
-      </div>
-
-      {/* Dados de Demonstração */}
-      <div className="bg-gray-50 p-6 rounded-lg">
-        <h3 className="font-semibold mb-2 flex items-center gap-2">
-          <Database size={18} /> Dados de Demonstração
-        </h3>
-        <p className="text-sm text-gray-600 mb-4">
-          Preenche o sistema com clientes, pets, agendamentos, vendas, assinaturas e despesas fictícios,
-          só para você visualizar como o app fica em uso. Substitui os dados atuais.
-        </p>
-        <Button onClick={handleLoadSeedData} variant="secondary">
-          <Database size={16} /> Carregar dados de demonstração
-        </Button>
       </div>
 
       {/* Horário de Funcionamento */}

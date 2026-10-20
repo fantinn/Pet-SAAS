@@ -71,3 +71,7 @@ export function mensagemVacina({ petNome, vacina, proximaDose, dias }) {
 export function mensagemReativacao({ petNome, dias }) {
   return `Olá! Faz ${dias} dias que o(a) ${petNome} não vem aqui. Bora agendar um banho ou uma tosa? 🐾`;
 }
+
+export function hojePetshop() {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date());
+}

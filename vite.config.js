@@ -6,9 +6,9 @@ import react from '@vitejs/plugin-react'
 // petshop.localhost.
 export default defineConfig(({ command }) => ({
   plugins: [react()],
-  base: command === 'build' ? '/Pet-SAAS/' : '/',
+  base: command === 'build' ? (process.env.VITE_BASE_PATH || '/Pet-SAAS/') : '/',
   server: {
-    host: true,
+    host: '127.0.0.1',
     allowedHosts: ['petshop.localhost'],
   },
 }))
